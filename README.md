@@ -1,36 +1,69 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🧺 Lavanderia (Local)
 
-## Getting Started
+Sistema profissional de gestão de lavanderia com armazenamento 100% local.
 
-First, run the development server:
+## 🚀 Setup
 
 ```bash
+cd Laundry/laundry
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Acesse: [http://localhost:3000](http://localhost:3000)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 📋 Funcionalidades
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Calculadora
+- Switch Serviços / Enxoval
+- Preços LP e P com controles de quantidade
+- Multiplicadores: Normal (×1.0), Expresso (×1.5), Urgente (×2.0)
+- Itens extras com opção "Tornar permanente"
+- Gerar comanda para impressão
+- Salvar no histórico
 
-## Learn More
+### Dashboard
+- Filtro por período e tipo
+- Ordenação clicável (data, tipo, total)
+- Detalhes, edição e exclusão de registros
+- Consolidado imprimível
+- Backup em PDF
 
-To learn more about Next.js, take a look at the following resources:
+### Estatísticas
+- Gráficos: Doughnut (custo), Bar (volume), Line (tendência)
+- Filtros: 7d, 30d, 90d, custom
+- Relatório imprimível com gráficos
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Notas
+- Editor rich text (Bold, Italic, Underline)
+- CRUD com sanitização HTML
+- Data de criação e edição
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Configurações
+- Gerenciar catálogo Serviços/Enxoval
+- Restaurar padrão, exportar/importar JSON
+- Toggle dark/light
+- Ajustar blur e opacidade dos cards
 
-## Deploy on Vercel
+## 🛠️ Stack
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+| Tecnologia | Uso |
+|---|---|
+| Next.js 15 (App Router) | Framework |
+| TypeScript | Tipagem |
+| Tailwind CSS | Estilos |
+| Dexie (IndexedDB) | Persistência local |
+| Chart.js | Gráficos |
+| jsPDF + autoTable | PDFs |
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 📁 Estrutura
+
+```
+src/
+├── app/         → Rotas (calculator, dashboard, statistics, notes, settings)
+├── components/  → Componentes por feature
+├── context/     → AppContext, ToastContext
+├── data/        → Dados default dos catálogos
+├── storage/     → Camada IndexedDB (Dexie)
+└── types/       → TypeScript interfaces
+```
