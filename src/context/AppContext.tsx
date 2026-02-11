@@ -18,6 +18,10 @@ const defaults: AppSettings = {
     lastServiceType: 'Normal',
     blurIntensity: 16,
     cardOpacity: 0.15,
+    showAbout: true,
+    modalOpacityMiddle: 0.9,
+    modalOpacityAverage: 0.6,
+    modalOpacityEdges: 0.2,
 };
 
 const AppContext = createContext<AppCtx>({
@@ -38,6 +42,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             const s = await getSettings();
             setSettingsState({ ...defaults, ...s });
             setReady(true);
+
+            // Re-apply CSS variables on load
+            const current = { ...defaults, ...s };
+            document.documentElement.style.setProperty('--glass-blur', `${current.blurIntensity}px`);
+            document.documentElement.style.setProperty('--card-opacity', `${current.cardOpacity}`);
+            document.documentElement.style.setProperty('--modal-opacity-mid', `${current.modalOpacityMiddle}`);
+            document.documentElement.style.setProperty('--modal-opacity-avg', `${current.modalOpacityAverage}`);
+            document.documentElement.style.setProperty('--modal-opacity-edge', `${current.modalOpacityEdges}`);
         })();
     }, []);
 

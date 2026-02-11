@@ -450,192 +450,201 @@ ${additionalAmount > 0 ? `<div class="row"><span>Adicional ${serviceType} (${((m
                 )}
             </div>
 
-            {/* Items Table */}
-            <div className="glass-card p-0 overflow-hidden">
-                <div className="overflow-x-auto">
-                    <table className="premium-table">
-                        <thead>
-                            <tr>
-                                <th>Item</th>
-                                {catalog === 'services' ? (
-                                    <>
-                                        <th className="text-center">Preço LP</th>
-                                        <th className="text-center">Qtd LP</th>
-                                        <th className="text-center">Preço P</th>
-                                        <th className="text-center">Qtd P</th>
-                                    </>
-                                ) : (
-                                    <>
-                                        <th className="text-center">Preço</th>
-                                        <th className="text-center">Qtd</th>
-                                    </>
-                                )}
-                                <th className="text-right">Subtotal</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {catalog === 'services' ? (
-                                <>
-                                    {svcItems.map((item) => {
-                                        const line = svcLines.get(item.id) || { qtyLP: 0, qtyP: 0 };
-                                        const lineTotal = item.priceLP * line.qtyLP + (item.priceP !== null ? item.priceP * line.qtyP : 0);
-                                        return (
-                                            <tr key={item.id}>
-                                                <td className="font-medium">{item.name}</td>
-                                                <td className="text-center text-sm text-[var(--text-secondary)]">R$ {item.priceLP.toFixed(2)}</td>
-                                                <td className="text-center">
-                                                    <QtyControl value={line.qtyLP} onChange={(v) => updateSvcQty(item.id, 'qtyLP', v)} />
-                                                </td>
-                                                <td className="text-center text-sm text-[var(--text-secondary)]">
-                                                    {item.priceP !== null ? `R$ ${item.priceP.toFixed(2)}` : '—'}
-                                                </td>
-                                                <td className="text-center">
-                                                    {item.priceP !== null ? (
-                                                        <QtyControl value={line.qtyP} onChange={(v) => updateSvcQty(item.id, 'qtyP', v)} />
-                                                    ) : (
-                                                        <span className="text-[var(--text-muted)]">—</span>
-                                                    )}
-                                                </td>
-                                                <td className="text-right font-semibold tabular-nums">
-                                                    {lineTotal > 0 ? `R$ ${lineTotal.toFixed(2)}` : '—'}
-                                                </td>
-                                            </tr>
-                                        );
-                                    })}
-                                    {extraSvc.map((ex, idx) => {
-                                        const lineTotal = ex.priceLP * ex.qtyLP + (ex.priceP !== null ? ex.priceP * ex.qtyP : 0);
-                                        return (
-                                            <tr key={ex.itemId} className="bg-amber-500/5">
-                                                <td className="font-medium">
-                                                    {ex.name}
-                                                    <span className="badge badge-amber ml-2">Extra</span>
-                                                </td>
-                                                <td className="text-center text-sm">R$ {ex.priceLP.toFixed(2)}</td>
-                                                <td className="text-center">
-                                                    <QtyControl
-                                                        value={ex.qtyLP}
-                                                        onChange={(v) => {
-                                                            setExtraSvc((prev) => {
-                                                                const copy = [...prev];
-                                                                copy[idx] = { ...copy[idx], qtyLP: v };
-                                                                return copy;
-                                                            });
-                                                        }}
-                                                    />
-                                                </td>
-                                                <td className="text-center text-sm">{ex.priceP !== null ? `R$ ${ex.priceP.toFixed(2)}` : '—'}</td>
-                                                <td className="text-center">
-                                                    {ex.priceP !== null ? (
-                                                        <QtyControl
-                                                            value={ex.qtyP}
-                                                            onChange={(v) => {
-                                                                setExtraSvc((prev) => {
-                                                                    const copy = [...prev];
-                                                                    copy[idx] = { ...copy[idx], qtyP: v };
-                                                                    return copy;
-                                                                });
-                                                            }}
-                                                        />
-                                                    ) : '—'}
-                                                </td>
-                                                <td className="text-right font-semibold tabular-nums">
-                                                    {lineTotal > 0 ? `R$ ${lineTotal.toFixed(2)}` : '—'}
-                                                </td>
-                                            </tr>
-                                        );
-                                    })}
-                                </>
-                            ) : (
-                                <>
-                                    {trsItems.map((item) => {
-                                        const qty = trsLines.get(item.id) || 0;
-                                        const lineTotal = item.price * qty;
-                                        return (
-                                            <tr key={item.id}>
-                                                <td className="font-medium">{item.name}</td>
-                                                <td className="text-center text-sm text-[var(--text-secondary)]">R$ {item.price.toFixed(2)}</td>
-                                                <td className="text-center">
-                                                    <QtyControl value={qty} onChange={(v) => updateTrsQty(item.id, v)} />
-                                                </td>
-                                                <td className="text-right font-semibold tabular-nums">
-                                                    {lineTotal > 0 ? `R$ ${lineTotal.toFixed(2)}` : '—'}
-                                                </td>
-                                            </tr>
-                                        );
-                                    })}
-                                    {extraTrs.map((ex, idx) => {
-                                        const lineTotal = ex.price * ex.qty;
-                                        return (
-                                            <tr key={ex.itemId} className="bg-amber-500/5">
-                                                <td className="font-medium">
-                                                    {ex.name}
-                                                    <span className="badge badge-amber ml-2">Extra</span>
-                                                </td>
-                                                <td className="text-center text-sm">R$ {ex.price.toFixed(2)}</td>
-                                                <td className="text-center">
-                                                    <QtyControl
-                                                        value={ex.qty}
-                                                        onChange={(v) => {
-                                                            setExtraTrs((prev) => {
-                                                                const copy = [...prev];
-                                                                copy[idx] = { ...copy[idx], qty: v };
-                                                                return copy;
-                                                            });
-                                                        }}
-                                                    />
-                                                </td>
-                                                <td className="text-right font-semibold tabular-nums">
-                                                    {lineTotal > 0 ? `R$ ${lineTotal.toFixed(2)}` : '—'}
-                                                </td>
-                                            </tr>
-                                        );
-                                    })}
-                                </>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            {/* Summary Card */}
-            <div className="glass-card p-6">
-                <h3 className="text-sm font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-4">Resumo</h3>
-                <div className="summary-row">
-                    <span className="text-[var(--text-secondary)]">Subtotal</span>
-                    <span className="font-semibold tabular-nums">R$ {subtotal.toFixed(2)}</span>
-                </div>
-                {catalog === 'services' && additionalAmount > 0 && (
-                    <div className="summary-row">
-                        <span className="text-[var(--text-secondary)]">
-                            Adicional {serviceType}
-                            <span className="badge badge-amber ml-2">{((multiplier - 1) * 100).toFixed(0)}%</span>
-                        </span>
-                        <span className="font-semibold tabular-nums text-amber-400">+ R$ {additionalAmount.toFixed(2)}</span>
+            {/* Main Content Area: Table + Actions */}
+            <div className="flex flex-col lg:flex-row gap-6">
+                <div className="flex-1 space-y-6">
+                    {/* Items Table */}
+                    <div className="glass-card p-0 overflow-hidden">
+                        <div className="overflow-x-auto">
+                            <table className="premium-table">
+                                <thead>
+                                    <tr>
+                                        <th>Item</th>
+                                        {catalog === 'services' ? (
+                                            <>
+                                                <th className="text-center">Preço LP</th>
+                                                <th className="text-center">Qtd LP</th>
+                                                <th className="text-center">Preço P</th>
+                                                <th className="text-center">Qtd P</th>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <th className="text-center">Preço</th>
+                                                <th className="text-center">Qtd</th>
+                                            </>
+                                        )}
+                                        <th className="text-right">Subtotal</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {catalog === 'services' ? (
+                                        <>
+                                            {svcItems.map((item) => {
+                                                const line = svcLines.get(item.id) || { qtyLP: 0, qtyP: 0 };
+                                                const lineTotal = item.priceLP * line.qtyLP + (item.priceP !== null ? item.priceP * line.qtyP : 0);
+                                                return (
+                                                    <tr key={item.id}>
+                                                        <td className="font-medium">{item.name}</td>
+                                                        <td className="text-center text-sm text-[var(--text-secondary)]">R$ {item.priceLP.toFixed(2)}</td>
+                                                        <td className="text-center">
+                                                            <QtyControl value={line.qtyLP} onChange={(v) => updateSvcQty(item.id, 'qtyLP', v)} />
+                                                        </td>
+                                                        <td className="text-center text-sm text-[var(--text-secondary)]">
+                                                            {item.priceP !== null ? `R$ ${item.priceP.toFixed(2)}` : '—'}
+                                                        </td>
+                                                        <td className="text-center">
+                                                            {item.priceP !== null ? (
+                                                                <QtyControl value={line.qtyP} onChange={(v) => updateSvcQty(item.id, 'qtyP', v)} />
+                                                            ) : (
+                                                                <span className="text-[var(--text-muted)]">—</span>
+                                                            )}
+                                                        </td>
+                                                        <td className="text-right font-semibold tabular-nums">
+                                                            {lineTotal > 0 ? `R$ ${lineTotal.toFixed(2)}` : '—'}
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                            {extraSvc.map((ex, idx) => {
+                                                const lineTotal = ex.priceLP * ex.qtyLP + (ex.priceP !== null ? ex.priceP * ex.qtyP : 0);
+                                                return (
+                                                    <tr key={ex.itemId} className="bg-amber-500/5">
+                                                        <td className="font-medium">
+                                                            {ex.name}
+                                                            <span className="badge badge-amber ml-2">Extra</span>
+                                                        </td>
+                                                        <td className="text-center text-sm">R$ {ex.priceLP.toFixed(2)}</td>
+                                                        <td className="text-center">
+                                                            <QtyControl
+                                                                value={ex.qtyLP}
+                                                                onChange={(v) => {
+                                                                    setExtraSvc((prev) => {
+                                                                        const copy = [...prev];
+                                                                        copy[idx] = { ...copy[idx], qtyLP: v };
+                                                                        return copy;
+                                                                    });
+                                                                }}
+                                                            />
+                                                        </td>
+                                                        <td className="text-center text-sm">{ex.priceP !== null ? `R$ ${ex.priceP.toFixed(2)}` : '—'}</td>
+                                                        <td className="text-center">
+                                                            {ex.priceP !== null ? (
+                                                                <QtyControl
+                                                                    value={ex.qtyP}
+                                                                    onChange={(v) => {
+                                                                        setExtraSvc((prev) => {
+                                                                            const copy = [...prev];
+                                                                            copy[idx] = { ...copy[idx], qtyP: v };
+                                                                            return copy;
+                                                                        });
+                                                                    }}
+                                                                />
+                                                            ) : '—'}
+                                                        </td>
+                                                        <td className="text-right font-semibold tabular-nums">
+                                                            {lineTotal > 0 ? `R$ ${lineTotal.toFixed(2)}` : '—'}
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </>
+                                    ) : (
+                                        <>
+                                            {trsItems.map((item) => {
+                                                const qty = trsLines.get(item.id) || 0;
+                                                const lineTotal = item.price * qty;
+                                                return (
+                                                    <tr key={item.id}>
+                                                        <td className="font-medium">{item.name}</td>
+                                                        <td className="text-center text-sm text-[var(--text-secondary)]">R$ {item.price.toFixed(2)}</td>
+                                                        <td className="text-center">
+                                                            <QtyControl value={qty} onChange={(v) => updateTrsQty(item.id, v)} />
+                                                        </td>
+                                                        <td className="text-right font-semibold tabular-nums">
+                                                            {lineTotal > 0 ? `R$ ${lineTotal.toFixed(2)}` : '—'}
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                            {extraTrs.map((ex, idx) => {
+                                                const lineTotal = ex.price * ex.qty;
+                                                return (
+                                                    <tr key={ex.itemId} className="bg-amber-500/5">
+                                                        <td className="font-medium">
+                                                            {ex.name}
+                                                            <span className="badge badge-amber ml-2">Extra</span>
+                                                        </td>
+                                                        <td className="text-center text-sm">R$ {ex.price.toFixed(2)}</td>
+                                                        <td className="text-center">
+                                                            <QtyControl
+                                                                value={ex.qty}
+                                                                onChange={(v) => {
+                                                                    setExtraTrs((prev) => {
+                                                                        const copy = [...prev];
+                                                                        copy[idx] = { ...copy[idx], qty: v };
+                                                                        return copy;
+                                                                    });
+                                                                }}
+                                                            />
+                                                        </td>
+                                                        <td className="text-right font-semibold tabular-nums">
+                                                            {lineTotal > 0 ? `R$ ${lineTotal.toFixed(2)}` : '—'}
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
-                )}
-                <div className="summary-row total">
-                    <span>TOTAL</span>
-                    <span>R$ {total.toFixed(2)}</span>
                 </div>
-            </div>
 
-            {/* Action buttons */}
-            <div className="flex flex-wrap gap-3">
-                <button className="btn btn-secondary" onClick={handleNewSheet}>
-                    📋 Nova Planilha
-                </button>
-                <button className="btn btn-secondary" onClick={() => setExtraModalOpen(true)}>
-                    ➕ Item Extra
-                </button>
-                <button className="btn btn-secondary" onClick={() => setItemsModalOpen(true)}>
-                    ✏️ Modificar Itens
-                </button>
-                <button className="btn btn-secondary" onClick={generateComanda} disabled={!hasItems}>
-                    🖨️ Gerar Comanda
-                </button>
-                <button className="btn btn-primary" onClick={() => { setSaveDate(new Date().toISOString().slice(0, 10)); setSaveModalOpen(true); }} disabled={!hasItems}>
-                    💾 Salvar
-                </button>
+                {/* Vertical Sidebar / Summary */}
+                <div className="w-full lg:w-80 space-y-6">
+                    {/* Summary Card */}
+                    <div className="glass-card p-6">
+                        <h3 className="text-sm font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-4">Resumo</h3>
+                        <div className="summary-row">
+                            <span className="text-[var(--text-secondary)]">Subtotal</span>
+                            <span className="font-semibold tabular-nums">R$ {subtotal.toFixed(2)}</span>
+                        </div>
+                        {catalog === 'services' && additionalAmount > 0 && (
+                            <div className="summary-row">
+                                <span className="text-[var(--text-secondary)]">
+                                    Adicional {serviceType}
+                                    <span className="badge badge-amber ml-2">{((multiplier - 1) * 100).toFixed(0)}%</span>
+                                </span>
+                                <span className="font-semibold tabular-nums text-amber-400">+ R$ {additionalAmount.toFixed(2)}</span>
+                            </div>
+                        )}
+                        <div className="summary-row total">
+                            <span>TOTAL</span>
+                            <span>R$ {total.toFixed(2)}</span>
+                        </div>
+                    </div>
+
+                    {/* Action buttons list */}
+                    <div className="flex flex-col gap-3">
+                        <button className="btn btn-primary w-full" onClick={() => { setSaveDate(new Date().toISOString().slice(0, 10)); setSaveModalOpen(true); }} disabled={!hasItems}>
+                            💾 Salvar no Histórico
+                        </button>
+                        <button className="btn btn-secondary w-full" onClick={generateComanda} disabled={!hasItems}>
+                            🖨️ Gerar Comanda (PDF)
+                        </button>
+                        <div className="h-px bg-[var(--glass-border)] my-1"></div>
+                        <button className="btn btn-secondary w-full text-left justify-start" onClick={() => setExtraModalOpen(true)}>
+                            ➕ Adicionar Item Extra
+                        </button>
+                        <button className="btn btn-secondary w-full text-left justify-start" onClick={() => setItemsModalOpen(true)}>
+                            ✏️ Modificar Catálogo
+                        </button>
+                        <button className="btn btn-ghost w-full text-red-400 hover:bg-red-400/10" onClick={handleNewSheet}>
+                            📋 Limpar Planilha
+                        </button>
+                    </div>
+                </div>
             </div>
 
             {/* Items Modal */}

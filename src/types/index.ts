@@ -81,6 +81,10 @@ export interface AppSettings {
     statsTypeFilter?: 'Ambos' | 'Serviços' | 'Enxoval';
     blurIntensity?: number;
     cardOpacity?: number;
+    showAbout?: boolean;
+    modalOpacityMiddle?: number;
+    modalOpacityAverage?: number;
+    modalOpacityEdges?: number;
 }
 
 // ====== JOB RUNS (future) ======

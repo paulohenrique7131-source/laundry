@@ -148,7 +148,13 @@ export function ItemsModal({ open, onClose, catalogType, onSaved }: Props) {
             {loading ? (
                 <div className="flex justify-center py-10"><div className="spinner" /></div>
             ) : tab === 'services' ? (
-                <div className="space-y-2 max-h-[50vh] overflow-y-auto pr-2">
+                <div className="space-y-4 max-h-[50vh] overflow-y-auto pr-2">
+                    <div className="flex gap-2 text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider px-1">
+                        <span className="flex-1">Nome do Item</span>
+                        <span className="w-20 text-center">Preço LP</span>
+                        <span className="w-20 text-center">Preço P</span>
+                        <span className="w-6"></span>
+                    </div>
                     {serviceItems.map((item, idx) => (
                         <div key={item.id} className="flex items-center gap-2 animate-fade-in">
                             <input
@@ -183,7 +189,12 @@ export function ItemsModal({ open, onClose, catalogType, onSaved }: Props) {
                     ))}
                 </div>
             ) : (
-                <div className="space-y-2 max-h-[50vh] overflow-y-auto pr-2">
+                <div className="space-y-4 max-h-[50vh] overflow-y-auto pr-2">
+                    <div className="flex gap-2 text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider px-1">
+                        <span className="flex-1">Nome do Item</span>
+                        <span className="w-24 text-center">Preço</span>
+                        <span className="w-6"></span>
+                    </div>
                     {trousseauItems.map((item, idx) => (
                         <div key={item.id} className="flex items-center gap-2 animate-fade-in">
                             <input

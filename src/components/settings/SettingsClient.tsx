@@ -103,19 +103,99 @@ export default function SettingsClient() {
                             className="w-full accent-[var(--accent)] h-1.5 rounded-full appearance-none bg-[var(--glass-border)] cursor-pointer"
                         />
                     </div>
+
+                    {/* Modal Middle Opacity */}
+                    <div>
+                        <div className="flex items-center justify-between mb-2">
+                            <p className="text-sm font-medium">Opacidade Central (Modais)</p>
+                            <span className="text-xs text-[var(--text-muted)] tabular-nums">{(settings.modalOpacityMiddle || 0.9) * 100}%</span>
+                        </div>
+                        <input
+                            type="range"
+                            min="0"
+                            max="100"
+                            value={(settings.modalOpacityMiddle || 0.9) * 100}
+                            onChange={(e) => {
+                                const v = parseInt(e.target.value) / 100;
+                                updateSettings({ modalOpacityMiddle: v });
+                                document.documentElement.style.setProperty('--modal-opacity-mid', `${v}`);
+                            }}
+                            className="w-full accent-[var(--accent)] h-1.5 rounded-full appearance-none bg-[var(--glass-border)] cursor-pointer"
+                        />
+                    </div>
+
+                    {/* Modal Average Opacity */}
+                    <div>
+                        <div className="flex items-center justify-between mb-2">
+                            <p className="text-sm font-medium">Opacidade Média (Modais)</p>
+                            <span className="text-xs text-[var(--text-muted)] tabular-nums">{(settings.modalOpacityAverage || 0.6) * 100}%</span>
+                        </div>
+                        <input
+                            type="range"
+                            min="0"
+                            max="100"
+                            value={(settings.modalOpacityAverage || 0.6) * 100}
+                            onChange={(e) => {
+                                const v = parseInt(e.target.value) / 100;
+                                updateSettings({ modalOpacityAverage: v });
+                                document.documentElement.style.setProperty('--modal-opacity-avg', `${v}`);
+                            }}
+                            className="w-full accent-[var(--accent)] h-1.5 rounded-full appearance-none bg-[var(--glass-border)] cursor-pointer"
+                        />
+                    </div>
+
+                    {/* Modal Edge Opacity */}
+                    <div>
+                        <div className="flex items-center justify-between mb-2">
+                            <p className="text-sm font-medium">Opacidade Extremidades (Modais)</p>
+                            <span className="text-xs text-[var(--text-muted)] tabular-nums">{(settings.modalOpacityEdges || 0.2) * 100}%</span>
+                        </div>
+                        <input
+                            type="range"
+                            min="0"
+                            max="100"
+                            value={(settings.modalOpacityEdges || 0.2) * 100}
+                            onChange={(e) => {
+                                const v = parseInt(e.target.value) / 100;
+                                updateSettings({ modalOpacityEdges: v });
+                                document.documentElement.style.setProperty('--modal-opacity-edge', `${v}`);
+                            }}
+                            className="w-full accent-[var(--accent)] h-1.5 rounded-full appearance-none bg-[var(--glass-border)] cursor-pointer"
+                        />
+                    </div>
+
+                    {/* Show About toggle */}
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-sm font-medium">Exibir seção "Sobre"</p>
+                            <p className="text-xs text-[var(--text-muted)]">Oculta ou mostra as informações do app</p>
+                        </div>
+                        <button
+                            onClick={() => updateSettings({ showAbout: !settings.showAbout })}
+                            className={`relative w-14 h-7 rounded-full transition-colors duration-300 ${settings.showAbout ? 'bg-amber-500/30' : 'bg-gray-400/30'
+                                }`}
+                        >
+                            <div className={`absolute top-0.5 w-6 h-6 rounded-full flex items-center justify-center text-sm transition-all duration-300 ${settings.showAbout ? 'left-7 bg-amber-400' : 'left-0.5 bg-gray-400'
+                                }`}>
+                                {settings.showAbout ? '✓' : '✕'}
+                            </div>
+                        </button>
+                    </div>
                 </div>
             </div>
 
             {/* About */}
-            <div className="glass-card p-6">
-                <h2 className="text-lg font-semibold mb-4">ℹ️ Sobre</h2>
-                <div className="space-y-2 text-sm text-[var(--text-secondary)]">
-                    <p><strong>Lavanderia (Local)</strong> v1.0.0</p>
-                    <p>App offline para gestão de lavanderia.</p>
-                    <p>Dados armazenados localmente via IndexedDB.</p>
-                    <p className="text-[var(--text-muted)] text-xs mt-4">Desenvolvido com Next.js, TypeScript, Tailwind, Chart.js e Dexie.</p>
+            {settings.showAbout && (
+                <div className="glass-card p-6">
+                    <h2 className="text-lg font-semibold mb-4">ℹ️ Sobre</h2>
+                    <div className="space-y-2 text-sm text-[var(--text-secondary)]">
+                        <p><strong>Lavanderia (Local)</strong> v1.0.0</p>
+                        <p>App offline para gestão de lavanderia.</p>
+                        <p>Dados armazenados localmente via IndexedDB.</p>
+                        <p className="text-[var(--text-muted)] text-xs mt-4">Desenvolvido com Next.js, TypeScript, Tailwind, Chart.js e Dexie.</p>
+                    </div>
                 </div>
-            </div>
+            )}
 
             {/* Items Modal */}
             <ItemsModal
