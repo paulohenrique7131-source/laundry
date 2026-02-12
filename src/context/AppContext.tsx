@@ -24,6 +24,7 @@ const defaults: AppSettings = {
     modalOpacityMiddle: 0.9,
     modalOpacityAverage: 0.6,
     modalOpacityEdges: 0.2,
+    customCatalogs: [],
 };
 
 const AppContext = createContext<AppCtx>({

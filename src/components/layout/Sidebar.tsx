@@ -1,10 +1,11 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useApp } from '@/context/AppContext';
 import { useAuth } from '@/context/AuthContext';
+import { getNotes } from '@/storage/db';
 
 const navItems = [
     { href: '/calculator', label: 'Calculadora', icon: '🧮' },
@@ -23,7 +24,23 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
     const pathname = usePathname();
     const router = useRouter();
     const { theme, toggleTheme } = useApp();
-    const { role, signOut } = useAuth();
+    const { role, userId, signOut } = useAuth();
+    const [unreadCount, setUnreadCount] = useState(0);
+
+    // Poll for unread messages (simple implementation)
+    useEffect(() => {
+        if (!userId) return;
+        const checkUnread = async () => {
+            const notes = await getNotes();
+            const count = notes.filter(n =>
+                n.recipients?.includes(userId) && !n.readBy?.includes(userId)
+            ).length;
+            setUnreadCount(count);
+        };
+        checkUnread();
+        const interval = setInterval(checkUnread, 30000); // Check every 30s
+        return () => clearInterval(interval);
+    }, [userId]);
 
     const handleLogout = async () => {
         onClose();
@@ -64,8 +81,11 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
                                     }`}
                             >
                                 <span className={`text-lg transition-transform duration-300 ${active ? 'nav-link-icon-active scale-110' : ''}`}>{item.icon}</span>
-                                <span>{item.label}</span>
-                                {active && (
+                                <span className="flex-1">{item.label}</span>
+                                {item.href === '/notes' && unreadCount > 0 && (
+                                    <span className="badge badge-red ml-auto animate-pulse">{unreadCount}</span>
+                                )}
+                                {active && item.href !== '/notes' && (
                                     <div className="ml-auto w-1.5 h-1.5 rounded-full bg-[var(--accent)] nav-link-active-dot" />
                                 )}
                             </Link>

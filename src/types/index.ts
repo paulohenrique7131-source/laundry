@@ -12,7 +12,14 @@ export interface TrousseauItem {
     price: number;
 }
 
-export type CatalogType = 'services' | 'trousseau';
+export interface CatalogDefinition {
+    id: string;
+    name: string;
+    type: 'service' | 'product'; // service = multipliers enabled, product = simple qty * price
+    columns: ('lp' | 'p' | 'single')[]; // Configuration of price columns
+}
+
+export type CatalogType = 'services' | 'trousseau' | string;
 
 // ====== CALCULATOR STATE ======
 export type ServiceType = 'Normal' | 'Expresso' | 'Urgente';
@@ -51,20 +58,29 @@ export interface HistoryItemDetail {
 export interface HistoryRecord {
     id: string;
     date: string; // YYYY-MM-DD
-    type: 'Serviços' | 'Enxoval';
+    type: string;
     serviceType: ServiceType;
     items: HistoryItemDetail[];
     subtotal: number;
     multiplier: number;
     total: number;
+    notes?: string;
     createdAt: string; // ISO
     updatedAt?: string;
+    author?: string; // e.g. "Manager", "Gov", "João"
+    authorId?: string;
 }
 
-// ====== NOTES ======
+// ====== NOTES & MESSAGES ======
 export interface Note {
     id: string;
     content: string;
+    authorId: string;
+    authorRole?: string; // "manager" | "gov"
+    visibility: 'public' | 'private' | 'targeted';
+    recipients?: string[]; // IDs of users who can see this if targeted
+    readBy?: string[];
+    relatedRecordId?: string; // link to a history record
     createdAt: string;
     updatedAt: string;
 }
@@ -76,15 +92,16 @@ export interface AppSettings {
     lastServiceType: ServiceType;
     dashboardDateStart?: string;
     dashboardDateEnd?: string;
-    dashboardTypeFilter?: 'Ambos' | 'Serviços' | 'Enxoval';
+    dashboardTypeFilter?: string;
     statsRange?: '7d' | '30d' | '90d' | 'custom';
-    statsTypeFilter?: 'Ambos' | 'Serviços' | 'Enxoval';
+    statsTypeFilter?: string;
     blurIntensity?: number;
     cardOpacity?: number;
     showAbout?: boolean;
     modalOpacityMiddle?: number;
     modalOpacityAverage?: number;
     modalOpacityEdges?: number;
+    customCatalogs?: CatalogDefinition[];
 }
 
 // ====== JOB RUNS (future) ======

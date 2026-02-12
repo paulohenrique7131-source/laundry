@@ -274,27 +274,55 @@ td { padding:8px 14px; border-bottom:1px solid #eee; font-size:13px; }
                 )}
             </div>
 
-            {/* Actions */}
-            <div className="flex flex-wrap gap-3">
-                <button className="btn btn-secondary btn-sm" onClick={generateConsolidated} disabled={sorted.length === 0}>
-                    📊 Consolidado
-                </button>
-                <button className="btn btn-secondary btn-sm" onClick={generateBackupPDF} disabled={sorted.length === 0}>
-                    📄 Backup PDF
-                </button>
-                <button className="btn btn-danger btn-sm" onClick={() => setClearConfirm(true)} disabled={sorted.length === 0}>
-                    🗑️ Limpar Período
-                </button>
-            </div>
+            {/* Action Buttons Removed as per user request */}
 
             {/* Detail Modal */}
             {selected && !editing && (
                 <Modal open={true} onClose={() => setSelected(null)} title={`Registro — ${selected.date}`} large>
                     <div className="space-y-4">
-                        <div className="flex gap-3 flex-wrap">
-                            <span className={`badge ${selected.type === 'Serviços' ? 'badge-amber' : 'badge-sky'}`}>{selected.type}</span>
-                            <span className="badge badge-emerald">{selected.serviceType}</span>
+                        <div className="flex gap-3 flex-wrap items-center justify-between">
+                            <div className="flex gap-2">
+                                <span className={`badge ${selected.type === 'Serviços' ? 'badge-amber' : 'badge-sky'}`}>{selected.type}</span>
+                                <span className="badge badge-emerald">{selected.serviceType}</span>
+                            </div>
+                            <div className="flex flex-col items-end">
+                                <span className="text-xs text-[var(--text-muted)]">ID: {selected.id.slice(0, 8)}</span>
+                                {selected.author && (
+                                    <span className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider mt-0.5">
+                                        Por: <span className="text-[var(--text-secondary)] font-medium">{selected.author}</span>
+                                    </span>
+                                )}
+                            </div>
                         </div>
+
+                        {/* Notes Section */}
+                        {selected.notes && (
+                            <div className="bg-amber-500/10 border-l-4 border-amber-500 p-3 rounded-r-lg relative group">
+                                <p className="text-xs font-semibold text-amber-500 uppercase tracking-wider mb-1">Observações</p>
+                                <p className="text-sm text-[var(--text-primary)] whitespace-pre-wrap">{selected.notes}</p>
+                                <button
+                                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity btn btn-xs btn-ghost text-amber-500 hover:bg-amber-500/20"
+                                    title="Salvar como Nota no Quadro"
+                                    onClick={async () => {
+                                        const { addNote } = await import('@/storage/db');
+                                        await addNote({
+                                            id: uuidv4(),
+                                            content: `Referente ao registro de ${selected.date} (${selected.type}):\n${selected.notes}`,
+                                            authorId: selected.authorId || 'unknown',
+                                            authorRole: (selected.author === 'Gerência' ? 'manager' : 'gov'),
+                                            visibility: 'private',
+                                            createdAt: new Date().toISOString(),
+                                            updatedAt: new Date().toISOString(),
+                                            relatedRecordId: selected.id
+                                        });
+                                        toast('Nota criada no quadro!');
+                                    }}
+                                >
+                                    📌 Fixar no Quadro
+                                </button>
+                            </div>
+                        )}
+
                         <div className="overflow-x-auto">
                             <table className="premium-table">
                                 <thead>

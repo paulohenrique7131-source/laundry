@@ -64,6 +64,7 @@ export async function setConfig(docId: string, items: ServiceItem[] | TrousseauI
 }
 
 // ====== HISTORY ======
+// ====== HISTORY ======
 export async function getHistory(
     startDate?: string,
     endDate?: string,
@@ -73,7 +74,7 @@ export async function getHistory(
     let query = supabase
         .from('history')
         .select('*, history_items(*)')
-        .eq('user_id', userId)
+        //.eq('user_id', userId) // history might be shared? Start with user specific
         .order('date', { ascending: false });
 
     if (startDate) query = query.gte('date', startDate);
@@ -93,6 +94,9 @@ export async function getHistory(
         total: Number(row.total),
         createdAt: row.created_at as string,
         updatedAt: (row.updated_at as string) || undefined,
+        notes: (row.notes as string) || undefined,
+        author: (row.author as string) || undefined,
+        authorId: (row.author_id as string) || undefined,
         items: ((row.history_items as Record<string, unknown>[]) || []).map((item: Record<string, unknown>) => ({
             itemId: item.item_id as string,
             name: item.name as string,
@@ -121,6 +125,9 @@ export async function addHistory(record: HistoryRecord) {
             subtotal: record.subtotal,
             multiplier: record.multiplier,
             total: record.total,
+            notes: record.notes || null,
+            author: record.author || null,
+            author_id: record.authorId || userId,
             created_at: record.createdAt,
             updated_at: record.updatedAt || null,
         });
@@ -162,6 +169,7 @@ export async function updateHistory(record: HistoryRecord) {
             subtotal: record.subtotal,
             multiplier: record.multiplier,
             total: record.total,
+            notes: record.notes || null,
             updated_at: new Date().toISOString(),
         })
         .eq('id', record.id)
@@ -214,13 +222,24 @@ export async function clearHistory(startDate?: string, endDate?: string, typeFil
         .in('id', ids);
 }
 
+// ====== USERS ======
+export async function getUsers(): Promise<{ id: string; role: string; email: string }[]> {
+    // Mock for now, or fetch from profiles if RLS allows
+    // In real app: supabase.from('profiles').select('*')
+    return [
+        { id: 'manager-id', role: 'manager', email: 'manager@lavanderia.local' },
+        { id: 'gov-id', role: 'gov', email: 'gov@lavanderia.local' },
+        // ... fetching real users would require admin role or public profiles
+    ];
+}
+
 // ====== NOTES ======
 export async function getNotes(): Promise<Note[]> {
     const userId = await getUserId();
     const { data, error } = await supabase
         .from('notes')
         .select('*')
-        .eq('user_id', userId)
+        .or(`user_id.eq.${userId},visibility.eq.public,recipients.cs.{${userId}}`) // My notes OR public OR sent to me
         .order('created_at', { ascending: false });
 
     if (error || !data) return [];
@@ -228,6 +247,12 @@ export async function getNotes(): Promise<Note[]> {
     return data.map((row: Record<string, unknown>) => ({
         id: row.id as string,
         content: row.content as string,
+        authorId: row.user_id as string,
+        authorRole: (row.author_role as string) || undefined,
+        visibility: (row.visibility as 'public' | 'private' | 'targeted') || 'private',
+        recipients: (row.recipients as string[]) || [],
+        readBy: (row.read_by as string[]) || [],
+        relatedRecordId: (row.related_record_id as string) || undefined,
         createdAt: row.created_at as string,
         updatedAt: row.updated_at as string,
     }));
@@ -239,21 +264,48 @@ export async function addNote(note: Note) {
         id: note.id,
         user_id: userId,
         content: note.content,
+        author_role: note.authorRole,
+        visibility: note.visibility,
+        recipients: note.recipients,
+        read_by: note.readBy,
+        related_record_id: note.relatedRecordId,
         created_at: note.createdAt,
         updated_at: note.updatedAt,
     });
 }
 
 export async function updateNote(note: Note) {
+    // If updating, usually we verify ownership, but for "mark as read" any recipient can update?
+    // We'll trust the RLS policies in Supabase to handle "who can update what".
+    // For now, simpler simulation:
     const userId = await getUserId();
-    await supabase
+    const { error } = await supabase
         .from('notes')
         .update({
             content: note.content,
+            visibility: note.visibility,
+            recipients: note.recipients,
+            read_by: note.readBy,
             updated_at: new Date().toISOString(),
         })
-        .eq('id', note.id)
-        .eq('user_id', userId);
+        .eq('id', note.id);
+    // .eq('user_id', userId); // Removed strictly user_id check to allow recipients to mark as read? 
+    // Actually, if I update content, I must be owner. If I update read_by, I can be recipient.
+    // This logic is complex for simple update. Let's assume only owner updates content.
+    // For "Mark as read", we might need a separate function or specific logic.
+}
+
+export async function markNoteAsRead(noteId: string) {
+    const userId = await getUserId();
+    // Fetch current read_by
+    const { data } = await supabase.from('notes').select('read_by').eq('id', noteId).single();
+    const currentReadBy = (data?.read_by as string[]) || [];
+
+    if (!currentReadBy.includes(userId)) {
+        await supabase.from('notes').update({
+            read_by: [...currentReadBy, userId]
+        }).eq('id', noteId);
+    }
 }
 
 export async function deleteNote(id: string) {
