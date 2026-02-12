@@ -668,23 +668,23 @@ ${additionalAmount > 0 ? `<div class="row"><span>Adicional ${serviceType} (${((m
             <Modal open={extraModalOpen} onClose={() => setExtraModalOpen(false)} title="Adicionar Item Extra">
                 <div className="space-y-4">
                     <div>
-                        <label className="block text-xs font-semibold text-[var(--text-muted)] mb-1.5 uppercase tracking-wider">Nome</label>
+                        <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5 uppercase tracking-wider">Nome</label>
                         <input className="input" value={extraName} onChange={(e) => setExtraName(e.target.value)} placeholder="Nome do item" />
                     </div>
                     {catalog === 'services' ? (
                         <div className="flex gap-3">
                             <div className="flex-1">
-                                <label className="block text-xs font-semibold text-[var(--text-muted)] mb-1.5 uppercase tracking-wider">Preço LP</label>
+                                <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5 uppercase tracking-wider">Preço LP</label>
                                 <input className="input" type="number" min="0" step="0.01" value={extraPriceLP} onChange={(e) => setExtraPriceLP(e.target.value)} />
                             </div>
                             <div className="flex-1">
-                                <label className="block text-xs font-semibold text-[var(--text-muted)] mb-1.5 uppercase tracking-wider">Preço P (opcional)</label>
+                                <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5 uppercase tracking-wider">Preço P (opcional)</label>
                                 <input className="input" type="number" min="0" step="0.01" value={extraPriceP} onChange={(e) => setExtraPriceP(e.target.value)} placeholder="Vazio = sem P" />
                             </div>
                         </div>
                     ) : (
                         <div>
-                            <label className="block text-xs font-semibold text-[var(--text-muted)] mb-1.5 uppercase tracking-wider">Preço</label>
+                            <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5 uppercase tracking-wider">Preço</label>
                             <input className="input" type="number" min="0" step="0.01" value={extraPrice} onChange={(e) => setExtraPrice(e.target.value)} />
                         </div>
                     )}

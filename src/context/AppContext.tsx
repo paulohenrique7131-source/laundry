@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { getSettings, setSettings } from '@/storage/db';
 import { useAuth } from '@/context/AuthContext';
 import type { AppSettings } from '@/types';
@@ -8,7 +8,8 @@ import type { AppSettings } from '@/types';
 interface AppCtx {
     ready: boolean;
     settings: AppSettings;
-    updateSettings: (partial: Partial<AppSettings>) => Promise<void>;
+    updateSettings: (partial: Partial<AppSettings>) => void;
+    saveSettings: () => Promise<void>;
     theme: 'dark' | 'light';
     toggleTheme: () => void;
 }
@@ -28,61 +29,85 @@ const defaults: AppSettings = {
 const AppContext = createContext<AppCtx>({
     ready: false,
     settings: defaults,
-    updateSettings: async () => { },
+    updateSettings: () => { },
+    saveSettings: async () => { },
     theme: 'dark',
     toggleTheme: () => { },
 });
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
-    const { user, loading: authLoading } = useAuth();
+    const { userId, loading: authLoading } = useAuth();
     const [ready, setReady] = useState(false);
     const [settings, setSettingsState] = useState<AppSettings>(defaults);
+    const loadedForUser = useRef<string | null>(null);
 
+    // Load settings ONCE per user ID (stable string, not object reference)
     useEffect(() => {
         if (authLoading) return;
-        if (!user) {
+
+        if (!userId) {
             setSettingsState(defaults);
             setReady(true);
+            loadedForUser.current = null;
             return;
         }
 
-        (async () => {
-            const s = await getSettings();
-            setSettingsState({ ...defaults, ...s });
-            setReady(true);
+        // Skip if already loaded for this user
+        if (loadedForUser.current === userId) return;
 
-            // Apply CSS variables
-            const current = { ...defaults, ...s };
-            document.documentElement.style.setProperty('--glass-blur', `${current.blurIntensity}px`);
-            document.documentElement.style.setProperty('--card-opacity', `${current.cardOpacity}`);
-            document.documentElement.style.setProperty('--modal-opacity-mid', `${current.modalOpacityMiddle}`);
-            document.documentElement.style.setProperty('--modal-opacity-avg', `${current.modalOpacityAverage}`);
-            document.documentElement.style.setProperty('--modal-opacity-edge', `${current.modalOpacityEdges}`);
+        let cancelled = false;
+        (async () => {
+            try {
+                const s = await getSettings();
+                if (cancelled) return;
+                const current = { ...defaults, ...s };
+                setSettingsState(current);
+                loadedForUser.current = userId;
+
+                // Apply CSS variables
+                document.documentElement.style.setProperty('--glass-blur', `${current.blurIntensity}px`);
+                document.documentElement.style.setProperty('--card-opacity', `${current.cardOpacity}`);
+                document.documentElement.style.setProperty('--modal-opacity-mid', `${current.modalOpacityMiddle}`);
+                document.documentElement.style.setProperty('--modal-opacity-avg', `${current.modalOpacityAverage}`);
+                document.documentElement.style.setProperty('--modal-opacity-edge', `${current.modalOpacityEdges}`);
+            } catch {
+                // Auth might have expired — use defaults
+                if (!cancelled) setSettingsState(defaults);
+            }
+            if (!cancelled) setReady(true);
         })();
-    }, [user, authLoading]);
+
+        return () => { cancelled = true; };
+    }, [userId, authLoading]);
 
     useEffect(() => {
         document.documentElement.setAttribute('data-theme', settings.theme);
         document.documentElement.classList.toggle('dark', settings.theme === 'dark');
     }, [settings.theme]);
 
-    const updateSettingsCtx = useCallback(async (partial: Partial<AppSettings>) => {
-        const merged = { ...settings, ...partial };
-        setSettingsState(merged);
+    // Local-only update (no network call — for real-time slider preview)
+    const updateSettings = useCallback((partial: Partial<AppSettings>) => {
+        setSettingsState(prev => ({ ...prev, ...partial }));
+    }, []);
+
+    // Persist to Supabase (called explicitly by save button)
+    const saveSettings = useCallback(async () => {
         try {
-            await setSettings(partial);
+            await setSettings(settings);
         } catch {
-            // User might not be authenticated yet (on login page)
+            // Silently fail — user might not be authenticated
         }
     }, [settings]);
 
     const toggleTheme = useCallback(() => {
         const next = settings.theme === 'dark' ? 'light' : 'dark';
-        updateSettingsCtx({ theme: next });
-    }, [settings.theme, updateSettingsCtx]);
+        setSettingsState(prev => ({ ...prev, theme: next }));
+        // Theme is saved immediately (not deferred)
+        setSettings({ theme: next }).catch(() => { });
+    }, [settings.theme]);
 
     return (
-        <AppContext.Provider value={{ ready, settings, updateSettings: updateSettingsCtx, theme: settings.theme, toggleTheme }}>
+        <AppContext.Provider value={{ ready, settings, updateSettings, saveSettings, theme: settings.theme, toggleTheme }}>
             {children}
         </AppContext.Provider>
     );

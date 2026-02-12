@@ -1,14 +1,7 @@
 'use client';
 
-import dynamic from 'next/dynamic';
-import { AuthGuard } from '@/components/auth/AuthGuard';
-
-const NotesClient = dynamic(() => import('@/components/notes/NotesClient'), { ssr: false });
+import NotesClient from '@/components/notes/NotesClient';
 
 export default function NotesPage() {
-    return (
-        <AuthGuard>
-            <NotesClient />
-        </AuthGuard>
-    );
+    return <NotesClient />;
 }

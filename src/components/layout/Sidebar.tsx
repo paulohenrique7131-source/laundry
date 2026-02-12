@@ -14,6 +14,11 @@ const navItems = [
     { href: '/settings', label: 'Configurações', icon: '⚙️' },
 ];
 
+const ROLE_LABELS: Record<string, string> = {
+    gov: 'Governança',
+    manager: 'Gerência',
+};
+
 export function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
     const pathname = usePathname();
     const router = useRouter();
@@ -40,10 +45,7 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
                         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-lg font-bold text-black shadow-lg">
                             L
                         </div>
-                        <div>
-                            <h1 className="text-base font-bold tracking-tight">Lavanderia</h1>
-                            <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-widest">{role ?? 'Cloud'}</p>
-                        </div>
+                        <h1 className="text-base font-bold tracking-tight">{role ? ROLE_LABELS[role] ?? role : 'Cloud'}</h1>
                     </div>
                 </div>
 

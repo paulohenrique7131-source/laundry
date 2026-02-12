@@ -5,17 +5,17 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 
 export default function Home() {
-  const { user, loading } = useAuth();
+  const { userId, loading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
     if (loading) return;
-    if (user) {
+    if (userId) {
       router.replace('/calculator');
     } else {
       router.replace('/login');
     }
-  }, [user, loading, router]);
+  }, [userId, loading, router]);
 
   return (
     <div style={{

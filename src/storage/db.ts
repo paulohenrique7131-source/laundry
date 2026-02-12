@@ -3,17 +3,41 @@ import type { ServiceItem, TrousseauItem, HistoryRecord, HistoryItemDetail, Note
 import { v4 as uuidv4 } from 'uuid';
 
 // ====== HELPERS ======
+let cachedUserId: string | null = null;
+let cacheExpiry = 0;
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
 async function getUserId(): Promise<string> {
+    // Return cached ID if still valid
+    if (cachedUserId && Date.now() < cacheExpiry) return cachedUserId;
+
     // Fast path: getSession reads from local memory (instant)
     const { data: { session } } = await supabase.auth.getSession();
-    if (session?.user) return session.user.id;
+    if (session?.user) {
+        cachedUserId = session.user.id;
+        cacheExpiry = Date.now() + CACHE_TTL;
+        return cachedUserId;
+    }
 
     // Slow fallback: getUser makes a network request (only if session missing)
     const { data: { user } } = await supabase.auth.getUser();
-    if (user) return user.id;
+    if (user) {
+        cachedUserId = user.id;
+        cacheExpiry = Date.now() + CACHE_TTL;
+        return cachedUserId;
+    }
 
+    cachedUserId = null;
     throw new Error('Not authenticated');
 }
+
+// Clear cache on sign-out
+supabase.auth.onAuthStateChange((event) => {
+    if (event === 'SIGNED_OUT') {
+        cachedUserId = null;
+        cacheExpiry = 0;
+    }
+});
 
 // ====== CONFIG ======
 export async function getConfig(docId: string): Promise<ServiceItem[] | TrousseauItem[]> {

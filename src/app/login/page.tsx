@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 
 export default function LoginPage() {
-    const { user, loading, signIn } = useAuth();
+    const { userId: authUserId, loading, signIn } = useAuth();
     const router = useRouter();
 
     const [userId, setUserId] = useState('');
@@ -29,10 +29,10 @@ export default function LoginPage() {
 
     // Redirect if already authenticated
     useEffect(() => {
-        if (!loading && user) {
+        if (!loading && authUserId) {
             router.replace('/calculator');
         }
-    }, [user, loading, router]);
+    }, [authUserId, loading, router]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -68,7 +68,7 @@ export default function LoginPage() {
         );
     }
 
-    if (user) return null;
+    if (authUserId) return null;
 
     return (
         <div className="bg-gradient-radial" style={{

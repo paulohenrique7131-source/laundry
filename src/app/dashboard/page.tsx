@@ -1,14 +1,7 @@
 'use client';
 
-import dynamic from 'next/dynamic';
-import { AuthGuard } from '@/components/auth/AuthGuard';
-
-const DashboardClient = dynamic(() => import('@/components/dashboard/DashboardClient'), { ssr: false });
+import DashboardClient from '@/components/dashboard/DashboardClient';
 
 export default function DashboardPage() {
-    return (
-        <AuthGuard>
-            <DashboardClient />
-        </AuthGuard>
-    );
+    return <DashboardClient />;
 }
