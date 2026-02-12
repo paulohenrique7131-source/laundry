@@ -1,16 +1,15 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { useApp } from '@/context/AppContext';
-import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
-import { getConfig, addHistory, setConfig } from '@/storage/db';
+import { getConfig, addHistory } from '@/storage/db';
 import { MULTIPLIERS } from '@/data/defaults';
 import { ItemsModal } from '@/components/calculator/ItemsModal';
 import { Modal, Confirm } from '@/components/ui/Modal';
 import type {
-    ServiceItem, TrousseauItem, CatalogDefinition, ServiceType,
+    ServiceItem, TrousseauItem, CatalogType, ServiceType,
     CalcLineService, CalcLineTrousseau, HistoryRecord, HistoryItemDetail
 } from '@/types';
 
@@ -41,28 +40,13 @@ function QtyControl({ value, onChange }: { value: number; onChange: (v: number) 
 export default function CalculatorClient() {
     const { settings, updateSettings } = useApp();
     const { toast } = useToast();
-    const { userId, role } = useAuth();
 
-    const [catalog, setCatalog] = useState<string>(settings.lastCatalog || 'services');
+    const [catalog, setCatalog] = useState<CatalogType>(settings.lastCatalog || 'services');
     const [serviceType, setServiceType] = useState<ServiceType>(settings.lastServiceType || 'Normal');
 
     // Catalog items
     const [svcItems, setSvcItems] = useState<ServiceItem[]>([]);
     const [trsItems, setTrsItems] = useState<TrousseauItem[]>([]);
-
-    // Determine current mode and title
-    const isServiceMode = useMemo(() => {
-        if (catalog === 'services') return true;
-        if (catalog === 'trousseau') return false;
-        const custom = settings.customCatalogs?.find(c => c.id === catalog);
-        return custom?.type === 'service';
-    }, [catalog, settings.customCatalogs]);
-
-    const catalogTitle = useMemo(() => {
-        if (catalog === 'services') return 'Serviços';
-        if (catalog === 'trousseau') return 'Enxoval';
-        return settings.customCatalogs?.find(c => c.id === catalog)?.name || 'Catálogo';
-    }, [catalog, settings.customCatalogs]);
 
     // Quantity state
     const [svcLines, setSvcLines] = useState<Map<string, { qtyLP: number; qtyP: number }>>(new Map());
@@ -71,9 +55,6 @@ export default function CalculatorClient() {
     // Extra items (temporary)
     const [extraSvc, setExtraSvc] = useState<CalcLineService[]>([]);
     const [extraTrs, setExtraTrs] = useState<CalcLineTrousseau[]>([]);
-
-    // Notes
-    const [notes, setNotes] = useState('');
 
     // Modals
     const [itemsModalOpen, setItemsModalOpen] = useState(false);
@@ -91,46 +72,21 @@ export default function CalculatorClient() {
 
     // Load catalog items
     const loadItems = useCallback(async () => {
-        if (catalog === 'services') {
-            const data = await getConfig('c1_items') as ServiceItem[];
-            setSvcItems(data || []);
-            setTrsItems([]);
-        } else if (catalog === 'trousseau') {
-            const data = await getConfig('c2_items') as TrousseauItem[];
-            setTrsItems(data || []);
-            setSvcItems([]);
-        } else {
-            // Custom catalogs
-            const custom = settings.customCatalogs?.find(c => c.id === catalog);
-            if (custom) {
-                const key = `cat_${custom.id}_items`;
-                const data = await getConfig(key);
-                if (custom.type === 'service') {
-                    setSvcItems(data as ServiceItem[] || []);
-                    setTrsItems([]);
-                } else {
-                    setTrsItems(data as TrousseauItem[] || []);
-                    setSvcItems([]);
-                }
-            } else {
-                // Fallback if catalog not found (deleted?)
-                setSvcItems([]);
-                setTrsItems([]);
-            }
-        }
-    }, [catalog, settings.customCatalogs]);
+        const c1 = await getConfig('c1_items') as ServiceItem[];
+        const c2 = await getConfig('c2_items') as TrousseauItem[];
+        setSvcItems(c1);
+        setTrsItems(c2);
+    }, []);
 
     useEffect(() => { loadItems(); }, [loadItems]);
 
     // Update settings when catalog changes
     useEffect(() => {
         updateSettings({ lastCatalog: catalog, lastServiceType: serviceType });
-    }, [catalog, serviceType, updateSettings]);
+    }, [catalog, serviceType]);
 
     // ===== CALCULATIONS =====
-    // Apply multiplier only if isServiceMode AND catalog allows it (default: services allows, custom service might)
-    // For now, assume all 'service' types support multipliers
-    const multiplier = isServiceMode ? (MULTIPLIERS[serviceType] || 1) : 1;
+    const multiplier = catalog === 'services' ? (MULTIPLIERS[serviceType] || 1) : 1;
 
     const svcSubtotal = useMemo(() => {
         let total = 0;
@@ -160,8 +116,8 @@ export default function CalculatorClient() {
         return total;
     }, [trsItems, trsLines, extraTrs]);
 
-    const subtotal = isServiceMode ? svcSubtotal : trsSubtotal;
-    const additionalAmount = isServiceMode && multiplier > 1 ? subtotal * (multiplier - 1) : 0;
+    const subtotal = catalog === 'services' ? svcSubtotal : trsSubtotal;
+    const additionalAmount = catalog === 'services' && multiplier > 1 ? subtotal * (multiplier - 1) : 0;
     const total = subtotal + additionalAmount;
 
     // ===== HANDLERS =====
@@ -191,16 +147,15 @@ export default function CalculatorClient() {
         setTrsLines(new Map());
         setExtraSvc([]);
         setExtraTrs([]);
-        setNotes('');
         setServiceType('Normal');
         setConfirmNewOpen(false);
         toast('Nova planilha criada', 'info');
     }
 
     async function handleAddExtra() {
-        if (!extraName.trim()) { toast('Nome obrigatório', 'error'); return; }
+        if (!extraName.trim()) { toast('Nome obrigat├│rio', 'error'); return; }
 
-        if (isServiceMode) {
+        if (catalog === 'services') {
             const newExtra: CalcLineService = {
                 itemId: 'extra_' + Date.now().toString(36),
                 name: extraName,
@@ -219,12 +174,9 @@ export default function CalculatorClient() {
                     priceLP: newExtra.priceLP,
                     priceP: newExtra.priceP,
                 };
-                let key = 'c1_items';
-                if (catalog !== 'services' && catalog !== 'trousseau') key = `cat_${catalog}_items`;
-
                 const current = [...svcItems, item];
                 setSvcItems(current);
-                await setConfig(key, current);
+                await import('@/storage/db').then(({ setConfig }) => setConfig('c1_items', current));
             }
         } else {
             const newExtra: CalcLineTrousseau = {
@@ -242,12 +194,9 @@ export default function CalculatorClient() {
                     name: newExtra.name,
                     price: newExtra.price,
                 };
-                let key = 'c2_items';
-                if (catalog !== 'services' && catalog !== 'trousseau') key = `cat_${catalog}_items`;
-
                 const current = [...trsItems, item];
                 setTrsItems(current);
-                await setConfig(key, current);
+                await import('@/storage/db').then(({ setConfig }) => setConfig('c2_items', current));
             }
         }
 
@@ -257,13 +206,13 @@ export default function CalculatorClient() {
         setExtraPriceP('');
         setExtraPrice('');
         setMakePermanent(false);
-        toast(makePermanent ? 'Item adicionado e salvo no catálogo!' : 'Item extra adicionado!');
+        toast(makePermanent ? 'Item adicionado e salvo no cat├ílogo!' : 'Item extra adicionado!');
     }
 
     async function handleSave() {
         const items: HistoryItemDetail[] = [];
 
-        if (isServiceMode) {
+        if (catalog === 'services') {
             svcItems.forEach((item) => {
                 const line = svcLines.get(item.id);
                 if (line && (line.qtyLP > 0 || line.qtyP > 0)) {
@@ -325,30 +274,31 @@ export default function CalculatorClient() {
         const record: HistoryRecord = {
             id: uuidv4(),
             date: saveDate,
-            type: catalogTitle,
-            serviceType: isServiceMode ? serviceType : 'Normal',
+            type: catalog === 'services' ? 'Servi├ºos' : 'Enxoval',
+            serviceType: catalog === 'services' ? serviceType : 'Normal',
             items,
             subtotal,
             multiplier,
             total,
-            notes,
             createdAt: new Date().toISOString(),
-            author: role === 'manager' ? 'Gerência' : (role === 'gov' ? 'Governança' : 'Sistema'),
-            authorId: userId || undefined,
         };
 
         await addHistory(record);
         setSaveModalOpen(false);
 
         // Reset
-        confirmNewSheet(); // reuse reset logic
-        toast('Registro salvo com sucesso! ✨');
+        setSvcLines(new Map());
+        setTrsLines(new Map());
+        setExtraSvc([]);
+        setExtraTrs([]);
+        setServiceType('Normal');
+        toast('Registro salvo com sucesso! Ô£¿');
     }
 
     function generateComanda() {
         const items: { name: string; qty: string; unitPrice: string; total: string }[] = [];
 
-        if (isServiceMode) {
+        if (catalog === 'services') {
             svcItems.forEach((item) => {
                 const line = svcLines.get(item.id);
                 if (line) {
@@ -441,20 +391,19 @@ tr:nth-child(even) td { background: #fafafa; }
 .print-btn { display: block; margin: 30px auto 0; padding: 12px 40px; background: #f59e0b; color: #000; border: none; border-radius: 10px; font-size: 16px; font-weight: 700; cursor: pointer; }
 @media print { .print-btn { display: none; } }
 </style></head><body>
-<div class="header"><h1>🧺 Lavanderia</h1><p>Comanda de ${catalogTitle}</p></div>
+<div class="header"><h1>­ƒº║ Lavanderia</h1><p>Comanda de ${catalog === 'services' ? 'Servi├ºos' : 'Enxoval'}</p></div>
 <div class="meta">
-<span>📅 ${dateStr} — ${timeStr}</span>
-<span>🏷️ ${isServiceMode ? `Tipo: ${serviceType}` : catalogTitle}</span>
+<span>­ƒôà ${dateStr} ÔÇö ${timeStr}</span>
+<span>­ƒÅÀ´©Å ${catalog === 'services' ? `Tipo: ${serviceType}` : 'Enxoval'}</span>
 </div>
-${notes ? `<div style="margin-bottom: 20px; padding: 10px; background: #fffde7; border-left: 3px solid #f59e0b; font-size: 14px;"><strong>Observações:</strong><br/>${notes.replace(/\n/g, '<br/>')}</div>` : ''}
-<table><thead><tr><th>Item</th><th>Qtd</th><th>Preço Unit.</th><th>Total</th></tr></thead>
+<table><thead><tr><th>Item</th><th>Qtd</th><th>Pre├ºo Unit.</th><th>Total</th></tr></thead>
 <tbody>${items.map(i => `<tr><td>${i.name}</td><td>${i.qty}</td><td>${i.unitPrice}</td><td>${i.total}</td></tr>`).join('')}</tbody></table>
 <div class="totals">
 <div class="row"><span>Subtotal</span><span>R$ ${subtotal.toFixed(2)}</span></div>
 ${additionalAmount > 0 ? `<div class="row"><span>Adicional ${serviceType} (${((multiplier - 1) * 100).toFixed(0)}%)</span><span>R$ ${additionalAmount.toFixed(2)}</span></div>` : ''}
 <div class="row grand"><span>TOTAL</span><span>R$ ${total.toFixed(2)}</span></div>
 </div>
-<button class="print-btn" onclick="window.print()">🖨️ Imprimir / Salvar como PDF</button>
+<button class="print-btn" onclick="window.print()">­ƒû¿´©Å Imprimir / Salvar como PDF</button>
 </body></html>`;
 
         const win = window.open('', '_blank');
@@ -465,7 +414,7 @@ ${additionalAmount > 0 ? `<div class="row"><span>Adicional ${serviceType} (${((m
     }
 
     // Check if any items have quantities
-    const hasItems = isServiceMode
+    const hasItems = catalog === 'services'
         ? [...svcLines.values()].some((l) => l.qtyLP > 0 || l.qtyP > 0) || extraSvc.some((e) => e.qtyLP > 0 || e.qtyP > 0)
         : [...trsLines.values()].some((q) => q > 0) || extraTrs.some((e) => e.qty > 0);
 
@@ -475,7 +424,7 @@ ${additionalAmount > 0 ? `<div class="row"><span>Adicional ${serviceType} (${((m
             <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold">Calculadora</h1>
-                    <p className="text-sm text-[var(--text-muted)] mt-1">Calcule o valor dos serviços de lavanderia</p>
+                    <p className="text-sm text-[var(--text-muted)] mt-1">Calcule o valor dos servi├ºos de lavanderia</p>
                 </div>
             </div>
 
@@ -483,19 +432,14 @@ ${additionalAmount > 0 ? `<div class="row"><span>Adicional ${serviceType} (${((m
             <div className="flex flex-wrap items-center gap-4">
                 <div className="pill-switch glass-card-static">
                     <button className={catalog === 'services' ? 'active' : ''} onClick={() => setCatalog('services')}>
-                        Serviços
+                        Servi├ºos
                     </button>
                     <button className={catalog === 'trousseau' ? 'active' : ''} onClick={() => setCatalog('trousseau')}>
                         Enxoval
                     </button>
-                    {settings.customCatalogs?.map((cat) => (
-                        <button key={cat.id} className={catalog === cat.id ? 'active' : ''} onClick={() => setCatalog(cat.id)}>
-                            {cat.name}
-                        </button>
-                    ))}
                 </div>
 
-                {isServiceMode && (
+                {catalog === 'services' && (
                     <div className="pill-switch glass-card-static">
                         {(['Normal', 'Expresso', 'Urgente'] as ServiceType[]).map((st) => (
                             <button
@@ -506,7 +450,7 @@ ${additionalAmount > 0 ? `<div class="row"><span>Adicional ${serviceType} (${((m
                                 {st}
                                 {st !== 'Normal' && (
                                     <span className="ml-1 text-xs opacity-70">
-                                        {st === 'Expresso' ? '×1.5' : '×2.0'}
+                                        {st === 'Expresso' ? '├ù1.5' : '├ù2.0'}
                                     </span>
                                 )}
                             </button>
@@ -525,16 +469,16 @@ ${additionalAmount > 0 ? `<div class="row"><span>Adicional ${serviceType} (${((m
                                 <thead>
                                     <tr>
                                         <th>Item</th>
-                                        {isServiceMode ? (
+                                        {catalog === 'services' ? (
                                             <>
-                                                <th className="text-center">Preço LP</th>
+                                                <th className="text-center">Pre├ºo LP</th>
                                                 <th className="text-center">Qtd LP</th>
-                                                <th className="text-center">Preço P</th>
+                                                <th className="text-center">Pre├ºo P</th>
                                                 <th className="text-center">Qtd P</th>
                                             </>
                                         ) : (
                                             <>
-                                                <th className="text-center">Preço</th>
+                                                <th className="text-center">Pre├ºo</th>
                                                 <th className="text-center">Qtd</th>
                                             </>
                                         )}
@@ -542,7 +486,7 @@ ${additionalAmount > 0 ? `<div class="row"><span>Adicional ${serviceType} (${((m
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {isServiceMode ? (
+                                    {catalog === 'services' ? (
                                         <>
                                             {svcItems.map((item) => {
                                                 const line = svcLines.get(item.id) || { qtyLP: 0, qtyP: 0 };
@@ -555,17 +499,17 @@ ${additionalAmount > 0 ? `<div class="row"><span>Adicional ${serviceType} (${((m
                                                             <QtyControl value={line.qtyLP} onChange={(v) => updateSvcQty(item.id, 'qtyLP', v)} />
                                                         </td>
                                                         <td className="text-center text-sm text-[var(--text-secondary)]">
-                                                            {item.priceP !== null ? `R$ ${item.priceP.toFixed(2)}` : '—'}
+                                                            {item.priceP !== null ? `R$ ${item.priceP.toFixed(2)}` : 'ÔÇö'}
                                                         </td>
                                                         <td className="text-center">
                                                             {item.priceP !== null ? (
                                                                 <QtyControl value={line.qtyP} onChange={(v) => updateSvcQty(item.id, 'qtyP', v)} />
                                                             ) : (
-                                                                <span className="text-[var(--text-muted)]">—</span>
+                                                                <span className="text-[var(--text-muted)]">ÔÇö</span>
                                                             )}
                                                         </td>
                                                         <td className="text-right font-semibold tabular-nums">
-                                                            {lineTotal > 0 ? `R$ ${lineTotal.toFixed(2)}` : '—'}
+                                                            {lineTotal > 0 ? `R$ ${lineTotal.toFixed(2)}` : 'ÔÇö'}
                                                         </td>
                                                     </tr>
                                                 );
@@ -591,7 +535,7 @@ ${additionalAmount > 0 ? `<div class="row"><span>Adicional ${serviceType} (${((m
                                                                 }}
                                                             />
                                                         </td>
-                                                        <td className="text-center text-sm">{ex.priceP !== null ? `R$ ${ex.priceP.toFixed(2)}` : '—'}</td>
+                                                        <td className="text-center text-sm">{ex.priceP !== null ? `R$ ${ex.priceP.toFixed(2)}` : 'ÔÇö'}</td>
                                                         <td className="text-center">
                                                             {ex.priceP !== null ? (
                                                                 <QtyControl
@@ -604,10 +548,10 @@ ${additionalAmount > 0 ? `<div class="row"><span>Adicional ${serviceType} (${((m
                                                                         });
                                                                     }}
                                                                 />
-                                                            ) : '—'}
+                                                            ) : 'ÔÇö'}
                                                         </td>
                                                         <td className="text-right font-semibold tabular-nums">
-                                                            {lineTotal > 0 ? `R$ ${lineTotal.toFixed(2)}` : '—'}
+                                                            {lineTotal > 0 ? `R$ ${lineTotal.toFixed(2)}` : 'ÔÇö'}
                                                         </td>
                                                     </tr>
                                                 );
@@ -626,7 +570,7 @@ ${additionalAmount > 0 ? `<div class="row"><span>Adicional ${serviceType} (${((m
                                                             <QtyControl value={qty} onChange={(v) => updateTrsQty(item.id, v)} />
                                                         </td>
                                                         <td className="text-right font-semibold tabular-nums">
-                                                            {lineTotal > 0 ? `R$ ${lineTotal.toFixed(2)}` : '—'}
+                                                            {lineTotal > 0 ? `R$ ${lineTotal.toFixed(2)}` : 'ÔÇö'}
                                                         </td>
                                                     </tr>
                                                 );
@@ -653,7 +597,7 @@ ${additionalAmount > 0 ? `<div class="row"><span>Adicional ${serviceType} (${((m
                                                             />
                                                         </td>
                                                         <td className="text-right font-semibold tabular-nums">
-                                                            {lineTotal > 0 ? `R$ ${lineTotal.toFixed(2)}` : '—'}
+                                                            {lineTotal > 0 ? `R$ ${lineTotal.toFixed(2)}` : 'ÔÇö'}
                                                         </td>
                                                     </tr>
                                                 );
@@ -664,8 +608,6 @@ ${additionalAmount > 0 ? `<div class="row"><span>Adicional ${serviceType} (${((m
                             </table>
                         </div>
                     </div>
-
-
                 </div>
 
                 {/* Vertical Sidebar / Summary - Sticky */}
@@ -677,7 +619,7 @@ ${additionalAmount > 0 ? `<div class="row"><span>Adicional ${serviceType} (${((m
                             <span className="text-[var(--text-secondary)]">Subtotal</span>
                             <span className="font-semibold tabular-nums">R$ {subtotal.toFixed(2)}</span>
                         </div>
-                        {isServiceMode && additionalAmount > 0 && (
+                        {catalog === 'services' && additionalAmount > 0 && (
                             <div className="summary-row">
                                 <span className="text-[var(--text-secondary)]">
                                     Adicional {serviceType}
@@ -695,20 +637,20 @@ ${additionalAmount > 0 ? `<div class="row"><span>Adicional ${serviceType} (${((m
                     {/* Action buttons list */}
                     <div className="flex flex-col gap-3">
                         <button className="btn btn-primary w-full" onClick={() => { setSaveDate(new Date().toISOString().slice(0, 10)); setSaveModalOpen(true); }} disabled={!hasItems}>
-                            💾 Salvar no Histórico
+                            ­ƒÆ¥ Salvar no Hist├│rico
                         </button>
                         <button className="btn btn-secondary w-full" onClick={generateComanda} disabled={!hasItems}>
-                            🖨️ Gerar Comanda (PDF)
+                            ­ƒû¿´©Å Gerar Comanda (PDF)
                         </button>
                         <div className="h-px bg-[var(--glass-border)] my-1"></div>
                         <button className="btn btn-secondary w-full text-left justify-start" onClick={() => setExtraModalOpen(true)}>
-                            ➕ Adicionar Item Extra
+                            Ô×ò Adicionar Item Extra
                         </button>
                         <button className="btn btn-secondary w-full text-left justify-start" onClick={() => setItemsModalOpen(true)}>
-                            ✏️ Modificar Itens
+                            Ô£Å´©Å Modificar Cat├ílogo
                         </button>
                         <button className="btn btn-secondary w-full text-red-400 hover:bg-red-400/10" onClick={handleNewSheet}>
-                            📋 Limpar Planilha
+                            ­ƒôï Limpar Planilha
                         </button>
                     </div>
                 </div>
@@ -729,20 +671,20 @@ ${additionalAmount > 0 ? `<div class="row"><span>Adicional ${serviceType} (${((m
                         <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5 uppercase tracking-wider">Nome</label>
                         <input className="input" value={extraName} onChange={(e) => setExtraName(e.target.value)} placeholder="Nome do item" />
                     </div>
-                    {isServiceMode ? (
+                    {catalog === 'services' ? (
                         <div className="flex gap-3">
                             <div className="flex-1">
-                                <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5 uppercase tracking-wider">Preço LP</label>
+                                <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5 uppercase tracking-wider">Pre├ºo LP</label>
                                 <input className="input" type="number" min="0" step="0.01" value={extraPriceLP} onChange={(e) => setExtraPriceLP(e.target.value)} />
                             </div>
                             <div className="flex-1">
-                                <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5 uppercase tracking-wider">Preço P (opcional)</label>
+                                <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5 uppercase tracking-wider">Pre├ºo P (opcional)</label>
                                 <input className="input" type="number" min="0" step="0.01" value={extraPriceP} onChange={(e) => setExtraPriceP(e.target.value)} placeholder="Vazio = sem P" />
                             </div>
                         </div>
                     ) : (
                         <div>
-                            <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5 uppercase tracking-wider">Preço</label>
+                            <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5 uppercase tracking-wider">Pre├ºo</label>
                             <input className="input" type="number" min="0" step="0.01" value={extraPrice} onChange={(e) => setExtraPrice(e.target.value)} />
                         </div>
                     )}
@@ -753,7 +695,7 @@ ${additionalAmount > 0 ? `<div class="row"><span>Adicional ${serviceType} (${((m
                             onChange={(e) => setMakePermanent(e.target.checked)}
                             className="w-4 h-4 accent-[var(--accent)]"
                         />
-                        <span className="text-sm text-[var(--text-secondary)]">Tornar permanente (salvar no catálogo)</span>
+                        <span className="text-sm text-[var(--text-secondary)]">Tornar permanente (salvar no cat├ílogo)</span>
                     </label>
                     <div className="flex gap-3 justify-end pt-2">
                         <button className="btn btn-secondary btn-sm" onClick={() => setExtraModalOpen(false)}>Cancelar</button>
@@ -763,30 +705,20 @@ ${additionalAmount > 0 ? `<div class="row"><span>Adicional ${serviceType} (${((m
             </Modal>
 
             {/* Save Modal */}
-            <Modal open={saveModalOpen} onClose={() => setSaveModalOpen(false)} title="Salvar no Histórico">
+            <Modal open={saveModalOpen} onClose={() => setSaveModalOpen(false)} title="Salvar no Hist├│rico">
                 <div className="space-y-4">
                     <div>
                         <label className="block text-xs font-semibold text-[var(--text-muted)] mb-1.5 uppercase tracking-wider">Data</label>
                         <input className="input" type="date" value={saveDate} onChange={(e) => setSaveDate(e.target.value)} />
                     </div>
-
-                    <div>
-                        <label className="block text-xs font-semibold text-[var(--text-muted)] mb-1.5 uppercase tracking-wider">Observações</label>
-                        <textarea
-                            className="input w-full min-h-[80px] resize-y"
-                            placeholder="Adicione observações..."
-                            value={notes}
-                            onChange={(e) => setNotes(e.target.value)}
-                        />
-                    </div>
                     <div className="glass-card-static p-4 rounded-xl">
                         <div className="summary-row">
                             <span>Tipo</span>
-                            <span className="badge badge-amber">{catalogTitle}</span>
+                            <span className="badge badge-amber">{catalog === 'services' ? 'Servi├ºos' : 'Enxoval'}</span>
                         </div>
-                        {isServiceMode && (
+                        {catalog === 'services' && (
                             <div className="summary-row">
-                                <span>Serviço</span>
+                                <span>Servi├ºo</span>
                                 <span className="badge badge-sky">{serviceType}</span>
                             </div>
                         )}

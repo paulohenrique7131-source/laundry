@@ -1,10 +1,38 @@
 'use client';
 
 import React, { useState } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
 import { Sidebar } from '@/components/layout/Sidebar';
+import { useAuth } from '@/context/AuthContext';
+import { useApp } from '@/context/AppContext';
 
 export function AppShell({ children }: { children: React.ReactNode }) {
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const pathname = usePathname();
+    const router = useRouter();
+    const { userId, loading: authLoading } = useAuth();
+    const { ready: appReady } = useApp();
+    const isLoginPage = pathname === '/login';
+
+    // On login page, render children without sidebar/shell
+    if (isLoginPage) {
+        return <>{children}</>;
+    }
+
+    // Auth guard: redirect to login if not authenticated
+    if (!authLoading && !userId) {
+        router.replace('/login');
+        return null;
+    }
+
+    // Show loading only during initial auth check (very brief)
+    if (authLoading || !appReady) {
+        return (
+            <div className="bg-gradient-radial min-h-screen flex items-center justify-center">
+                <div className="spinner" />
+            </div>
+        );
+    }
 
     return (
         <div className="bg-gradient-radial min-h-screen">
@@ -22,7 +50,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </div>
 
             <main className="main-content md:pt-0 pt-16">
-                <div className="page-enter">
+                <div key={pathname} className="page-enter">
                     {children}
                 </div>
             </main>

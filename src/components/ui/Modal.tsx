@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 
 interface ModalProps {
     open: boolean;
@@ -11,11 +11,22 @@ interface ModalProps {
 }
 
 export function Modal({ open, onClose, title, children, large }: ModalProps) {
+    const contentRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (open && contentRef.current) {
+            contentRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }, [open]);
+
     if (!open) return null;
 
     return (
         <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-            <div className={`modal-content glass-card-static p-6 ${large ? 'modal-content-lg' : ''}`}>
+            <div
+                ref={contentRef}
+                className={`modal-content glass-card-static p-6 ${large ? 'modal-content-lg' : ''}`}
+            >
                 {title && (
                     <div className="flex items-center justify-between mb-5">
                         <h2 className="text-lg font-bold text-gradient">{title}</h2>
@@ -45,11 +56,19 @@ interface ConfirmProps {
 }
 
 export function Confirm({ open, onConfirm, onCancel, title, message, confirmText = 'Confirmar', danger }: ConfirmProps) {
+    const contentRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (open && contentRef.current) {
+            contentRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }, [open]);
+
     if (!open) return null;
 
     return (
         <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}>
-            <div className="modal-content glass-card-static p-6" style={{ maxWidth: 420 }}>
+            <div ref={contentRef} className="modal-content glass-card-static p-6" style={{ maxWidth: 420 }}>
                 {title && <h3 className="text-lg font-bold mb-3">{title}</h3>}
                 <p className="text-[var(--text-secondary)] mb-6 text-sm leading-relaxed">{message}</p>
                 <div className="flex gap-3 justify-end">

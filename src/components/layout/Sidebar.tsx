@@ -1,9 +1,11 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useApp } from '@/context/AppContext';
+import { useAuth } from '@/context/AuthContext';
+import { getNotes } from '@/storage/db';
 
 const navItems = [
     { href: '/calculator', label: 'Calculadora', icon: '🧮' },
@@ -13,9 +15,38 @@ const navItems = [
     { href: '/settings', label: 'Configurações', icon: '⚙️' },
 ];
 
+const ROLE_LABELS: Record<string, string> = {
+    gov: 'Governança',
+    manager: 'Gerência',
+};
+
 export function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
     const pathname = usePathname();
+    const router = useRouter();
     const { theme, toggleTheme } = useApp();
+    const { role, userId, signOut } = useAuth();
+    const [unreadCount, setUnreadCount] = useState(0);
+
+    // Poll for unread messages (simple implementation)
+    useEffect(() => {
+        if (!userId) return;
+        const checkUnread = async () => {
+            const notes = await getNotes();
+            const count = notes.filter(n =>
+                n.recipients?.includes(userId) && !n.readBy?.includes(userId)
+            ).length;
+            setUnreadCount(count);
+        };
+        checkUnread();
+        const interval = setInterval(checkUnread, 30000); // Check every 30s
+        return () => clearInterval(interval);
+    }, [userId]);
+
+    const handleLogout = async () => {
+        onClose();
+        await signOut();
+        router.replace('/login');
+    };
 
     return (
         <>
@@ -31,10 +62,7 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
                         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-lg font-bold text-black shadow-lg">
                             L
                         </div>
-                        <div>
-                            <h1 className="text-base font-bold tracking-tight">Lavanderia</h1>
-                            <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-widest">Local</p>
-                        </div>
+                        <h1 className="text-base font-bold tracking-tight">{role ? ROLE_LABELS[role] ?? role : 'Cloud'}</h1>
                     </div>
                 </div>
 
@@ -47,23 +75,26 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
                                 key={item.href}
                                 href={item.href}
                                 onClick={onClose}
-                                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-300 no-underline ${active
-                                        ? 'bg-gradient-to-r from-amber-500/20 to-orange-500/10 text-[var(--accent)] border border-amber-500/20 shadow-lg shadow-amber-500/5'
-                                        : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--glass-bg)]'
+                                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-300 no-underline animate-stagger-in ${active
+                                    ? 'bg-gradient-to-r from-amber-500/20 to-orange-500/10 text-[var(--accent)] border border-amber-500/20 shadow-lg shadow-amber-500/5'
+                                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--glass-bg)]'
                                     }`}
                             >
-                                <span className="text-lg">{item.icon}</span>
-                                <span>{item.label}</span>
-                                {active && (
-                                    <div className="ml-auto w-1.5 h-1.5 rounded-full bg-[var(--accent)] animate-pulse-glow" />
+                                <span className={`text-lg transition-transform duration-300 ${active ? 'nav-link-icon-active scale-110' : ''}`}>{item.icon}</span>
+                                <span className="flex-1">{item.label}</span>
+                                {item.href === '/notes' && unreadCount > 0 && (
+                                    <span className="badge badge-red ml-auto animate-pulse">{unreadCount}</span>
+                                )}
+                                {active && item.href !== '/notes' && (
+                                    <div className="ml-auto w-1.5 h-1.5 rounded-full bg-[var(--accent)] nav-link-active-dot" />
                                 )}
                             </Link>
                         );
                     })}
                 </nav>
 
-                {/* Theme toggle */}
-                <div className="mt-auto pt-6 border-t border-[var(--glass-border)]">
+                {/* Theme toggle + Logout */}
+                <div className="mt-auto pt-6 border-t border-[var(--glass-border)] flex flex-col gap-1">
                     <button
                         onClick={toggleTheme}
                         className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--glass-bg)] transition-all duration-300"
@@ -75,6 +106,13 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
                             <div className={`absolute top-0.5 w-4 h-4 rounded-full transition-all duration-300 ${theme === 'dark' ? 'left-0.5 bg-amber-400' : 'left-5 bg-sky-400'
                                 }`} />
                         </div>
+                    </button>
+                    <button
+                        onClick={handleLogout}
+                        className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-red-400/80 hover:text-red-400 hover:bg-red-500/10 transition-all duration-300"
+                    >
+                        <span className="text-lg">🚪</span>
+                        <span>Sair</span>
                     </button>
                 </div>
             </aside>

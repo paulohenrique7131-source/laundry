@@ -47,7 +47,7 @@ export default function StatisticsClient() {
     // Compute cost by category
     const costByCategory = records.reduce<Record<string, number>>((acc, r) => {
         r.items.forEach((item) => {
-            acc[item.name] = (acc[item.name] || 0) + item.lineTotal;
+            acc[item.name] = (acc[item.name] || 0) + (item.lineTotal || 0);
         });
         return acc;
     }, {});
@@ -63,7 +63,7 @@ export default function StatisticsClient() {
 
     // Trend by day
     const trendByDay = records.reduce<Record<string, number>>((acc, r) => {
-        acc[r.date] = (acc[r.date] || 0) + r.total;
+        acc[r.date] = (acc[r.date] || 0) + (r.total || 0);
         return acc;
     }, {});
     const trendDates = Object.keys(trendByDay).sort();
