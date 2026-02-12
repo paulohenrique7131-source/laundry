@@ -58,15 +58,15 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
                                 key={item.href}
                                 href={item.href}
                                 onClick={onClose}
-                                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-300 no-underline ${active
+                                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-300 no-underline animate-stagger-in ${active
                                     ? 'bg-gradient-to-r from-amber-500/20 to-orange-500/10 text-[var(--accent)] border border-amber-500/20 shadow-lg shadow-amber-500/5'
                                     : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--glass-bg)]'
                                     }`}
                             >
-                                <span className="text-lg">{item.icon}</span>
+                                <span className={`text-lg transition-transform duration-300 ${active ? 'nav-link-icon-active scale-110' : ''}`}>{item.icon}</span>
                                 <span>{item.label}</span>
                                 {active && (
-                                    <div className="ml-auto w-1.5 h-1.5 rounded-full bg-[var(--accent)] animate-pulse-glow" />
+                                    <div className="ml-auto w-1.5 h-1.5 rounded-full bg-[var(--accent)] nav-link-active-dot" />
                                 )}
                             </Link>
                         );

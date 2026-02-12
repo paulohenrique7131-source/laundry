@@ -50,7 +50,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </div>
 
             <main className="main-content md:pt-0 pt-16">
-                <div className="page-enter">
+                <div key={pathname} className="page-enter">
                     {children}
                 </div>
             </main>
