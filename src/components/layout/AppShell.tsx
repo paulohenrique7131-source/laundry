@@ -1,10 +1,18 @@
 'use client';
 
 import React, { useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { Sidebar } from '@/components/layout/Sidebar';
 
 export function AppShell({ children }: { children: React.ReactNode }) {
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const pathname = usePathname();
+    const isLoginPage = pathname === '/login';
+
+    // On login page, render children without sidebar/shell
+    if (isLoginPage) {
+        return <>{children}</>;
+    }
 
     return (
         <div className="bg-gradient-radial min-h-screen">

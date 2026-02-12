@@ -16,14 +16,23 @@ import type {
 function QtyControl({ value, onChange }: { value: number; onChange: (v: number) => void }) {
     return (
         <div className="qty-control">
-            <button onClick={() => onChange(Math.max(0, value - 1))} aria-label="Diminuir">−</button>
+            <button onClick={() => onChange(Math.max(0, value - 1))} aria-label="Diminuir">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+            </button>
             <input
                 type="number"
                 min="0"
                 value={value}
                 onChange={(e) => onChange(Math.max(0, parseInt(e.target.value) || 0))}
             />
-            <button onClick={() => onChange(value + 1)} aria-label="Aumentar">+</button>
+            <button onClick={() => onChange(value + 1)} aria-label="Aumentar">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                    <line x1="12" y1="5" x2="12" y2="19" />
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+            </button>
         </div>
     );
 }
@@ -601,8 +610,8 @@ ${additionalAmount > 0 ? `<div class="row"><span>Adicional ${serviceType} (${((m
                     </div>
                 </div>
 
-                {/* Vertical Sidebar / Summary */}
-                <div className="w-full lg:w-80 space-y-6">
+                {/* Vertical Sidebar / Summary - Sticky */}
+                <div className="w-full lg:w-80 lg:sticky lg:top-8 lg:self-start space-y-6">
                     {/* Summary Card */}
                     <div className="glass-card p-6">
                         <h3 className="text-sm font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-4">Resumo</h3>
@@ -640,7 +649,7 @@ ${additionalAmount > 0 ? `<div class="row"><span>Adicional ${serviceType} (${((m
                         <button className="btn btn-secondary w-full text-left justify-start" onClick={() => setItemsModalOpen(true)}>
                             ✏️ Modificar Catálogo
                         </button>
-                        <button className="btn btn-ghost w-full text-red-400 hover:bg-red-400/10" onClick={handleNewSheet}>
+                        <button className="btn btn-secondary w-full text-red-400 hover:bg-red-400/10" onClick={handleNewSheet}>
                             📋 Limpar Planilha
                         </button>
                     </div>

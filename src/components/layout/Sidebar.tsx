@@ -2,8 +2,9 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useApp } from '@/context/AppContext';
+import { useAuth } from '@/context/AuthContext';
 
 const navItems = [
     { href: '/calculator', label: 'Calculadora', icon: '🧮' },
@@ -15,7 +16,15 @@ const navItems = [
 
 export function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
     const pathname = usePathname();
+    const router = useRouter();
     const { theme, toggleTheme } = useApp();
+    const { role, signOut } = useAuth();
+
+    const handleLogout = async () => {
+        onClose();
+        await signOut();
+        router.replace('/login');
+    };
 
     return (
         <>
@@ -33,7 +42,7 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
                         </div>
                         <div>
                             <h1 className="text-base font-bold tracking-tight">Lavanderia</h1>
-                            <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-widest">Local</p>
+                            <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-widest">{role ?? 'Cloud'}</p>
                         </div>
                     </div>
                 </div>
@@ -48,8 +57,8 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
                                 href={item.href}
                                 onClick={onClose}
                                 className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-300 no-underline ${active
-                                        ? 'bg-gradient-to-r from-amber-500/20 to-orange-500/10 text-[var(--accent)] border border-amber-500/20 shadow-lg shadow-amber-500/5'
-                                        : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--glass-bg)]'
+                                    ? 'bg-gradient-to-r from-amber-500/20 to-orange-500/10 text-[var(--accent)] border border-amber-500/20 shadow-lg shadow-amber-500/5'
+                                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--glass-bg)]'
                                     }`}
                             >
                                 <span className="text-lg">{item.icon}</span>
@@ -62,8 +71,8 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
                     })}
                 </nav>
 
-                {/* Theme toggle */}
-                <div className="mt-auto pt-6 border-t border-[var(--glass-border)]">
+                {/* Theme toggle + Logout */}
+                <div className="mt-auto pt-6 border-t border-[var(--glass-border)] flex flex-col gap-1">
                     <button
                         onClick={toggleTheme}
                         className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--glass-bg)] transition-all duration-300"
@@ -75,6 +84,13 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
                             <div className={`absolute top-0.5 w-4 h-4 rounded-full transition-all duration-300 ${theme === 'dark' ? 'left-0.5 bg-amber-400' : 'left-5 bg-sky-400'
                                 }`} />
                         </div>
+                    </button>
+                    <button
+                        onClick={handleLogout}
+                        className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-red-400/80 hover:text-red-400 hover:bg-red-500/10 transition-all duration-300"
+                    >
+                        <span className="text-lg">🚪</span>
+                        <span>Sair</span>
                     </button>
                 </div>
             </aside>

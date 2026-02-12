@@ -5,6 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { getHistory, updateHistory, deleteHistory, clearHistory } from '@/storage/db';
 import { useToast } from '@/context/ToastContext';
 import { Modal, Confirm } from '@/components/ui/Modal';
+import { DateRangePicker } from '@/components/ui/DateRangePicker';
 import type { HistoryRecord, HistoryItemDetail } from '@/types';
 
 type SortKey = 'date' | 'type' | 'total';
@@ -202,12 +203,13 @@ td { padding:8px 14px; border-bottom:1px solid #eee; font-size:13px; }
             <div className="glass-card p-5">
                 <div className="flex flex-wrap items-end gap-4">
                     <div>
-                        <label className="block text-xs font-semibold text-[var(--text-muted)] mb-1.5 uppercase tracking-wider">De</label>
-                        <input className="input input-sm" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
-                    </div>
-                    <div>
-                        <label className="block text-xs font-semibold text-[var(--text-muted)] mb-1.5 uppercase tracking-wider">Até</label>
-                        <input className="input input-sm" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+                        <label className="block text-xs font-semibold text-[var(--text-muted)] mb-1.5 uppercase tracking-wider">Período</label>
+                        <DateRangePicker
+                            startDate={startDate}
+                            endDate={endDate}
+                            onChangeStart={setStartDate}
+                            onChangeEnd={setEndDate}
+                        />
                     </div>
                     <div>
                         <label className="block text-xs font-semibold text-[var(--text-muted)] mb-1.5 uppercase tracking-wider">Tipo</label>

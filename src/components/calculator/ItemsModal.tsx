@@ -148,71 +148,77 @@ export function ItemsModal({ open, onClose, catalogType, onSaved }: Props) {
             {loading ? (
                 <div className="flex justify-center py-10"><div className="spinner" /></div>
             ) : tab === 'services' ? (
-                <div className="space-y-4 max-h-[50vh] overflow-y-auto pr-2">
-                    <div className="flex gap-2 text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider px-1">
-                        <span className="flex-1">Nome do Item</span>
-                        <span className="w-20 text-center">Preço LP</span>
-                        <span className="w-20 text-center">Preço P</span>
-                        <span className="w-6"></span>
+                <div className="space-y-3 max-h-[50vh] overflow-y-auto pr-2">
+                    {/* Column headers */}
+                    <div className="grid gap-2 text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider px-1"
+                        style={{ gridTemplateColumns: '1fr 90px 90px 28px' }}>
+                        <span>Nome do Item</span>
+                        <span className="text-center">Preço LP</span>
+                        <span className="text-center">Preço P</span>
+                        <span></span>
                     </div>
                     {serviceItems.map((item, idx) => (
-                        <div key={item.id} className="flex items-center gap-2 animate-fade-in">
+                        <div key={item.id} className="grid gap-2 items-center animate-fade-in"
+                            style={{ gridTemplateColumns: '1fr 90px 90px 28px' }}>
                             <input
-                                className="input input-sm flex-1"
-                                placeholder="Nome"
+                                className="input input-sm"
+                                placeholder="Nome do item"
                                 value={item.name}
                                 onChange={(e) => updateSvc(idx, 'name', e.target.value)}
                             />
                             <input
-                                className="input input-sm w-20"
+                                className="input input-sm text-center"
                                 type="number"
                                 min="0"
                                 step="0.01"
-                                placeholder="LP"
+                                placeholder="0.00"
                                 value={item.priceLP || ''}
                                 onChange={(e) => updateSvc(idx, 'priceLP', parseFloat(e.target.value) || 0)}
                             />
                             <input
-                                className="input input-sm w-20"
+                                className="input input-sm text-center"
                                 type="number"
                                 min="0"
                                 step="0.01"
-                                placeholder="P (vazio=null)"
+                                placeholder="Vazio = sem"
                                 value={item.priceP ?? ''}
                                 onChange={(e) => {
                                     const v = e.target.value;
                                     updateSvc(idx, 'priceP', v === '' ? null : parseFloat(v) || 0);
                                 }}
                             />
-                            <button className="btn btn-ghost btn-xs text-red-400" onClick={() => removeSvcItem(idx)}>✕</button>
+                            <button className="btn btn-ghost btn-xs text-red-400 !p-1" onClick={() => removeSvcItem(idx)}>✕</button>
                         </div>
                     ))}
                 </div>
             ) : (
-                <div className="space-y-4 max-h-[50vh] overflow-y-auto pr-2">
-                    <div className="flex gap-2 text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider px-1">
-                        <span className="flex-1">Nome do Item</span>
-                        <span className="w-24 text-center">Preço</span>
-                        <span className="w-6"></span>
+                <div className="space-y-3 max-h-[50vh] overflow-y-auto pr-2">
+                    {/* Column headers */}
+                    <div className="grid gap-2 text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider px-1"
+                        style={{ gridTemplateColumns: '1fr 100px 28px' }}>
+                        <span>Nome do Item</span>
+                        <span className="text-center">Preço</span>
+                        <span></span>
                     </div>
                     {trousseauItems.map((item, idx) => (
-                        <div key={item.id} className="flex items-center gap-2 animate-fade-in">
+                        <div key={item.id} className="grid gap-2 items-center animate-fade-in"
+                            style={{ gridTemplateColumns: '1fr 100px 28px' }}>
                             <input
-                                className="input input-sm flex-1"
-                                placeholder="Nome"
+                                className="input input-sm"
+                                placeholder="Nome do item"
                                 value={item.name}
                                 onChange={(e) => updateTrs(idx, 'name', e.target.value)}
                             />
                             <input
-                                className="input input-sm w-24"
+                                className="input input-sm text-center"
                                 type="number"
                                 min="0"
                                 step="0.01"
-                                placeholder="Preço"
+                                placeholder="0.00"
                                 value={item.price || ''}
                                 onChange={(e) => updateTrs(idx, 'price', parseFloat(e.target.value) || 0)}
                             />
-                            <button className="btn btn-ghost btn-xs text-red-400" onClick={() => removeTrsItem(idx)}>✕</button>
+                            <button className="btn btn-ghost btn-xs text-red-400 !p-1" onClick={() => removeTrsItem(idx)}>✕</button>
                         </div>
                     ))}
                 </div>
