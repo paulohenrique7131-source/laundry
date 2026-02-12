@@ -104,7 +104,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) {
-            return 'Credenciais incorretas. Verifique seu ID e senha.';
+            console.error('Supabase auth error:', error.message, error.status);
+            return `Credenciais incorretas (${error.message})`;
         }
         return null;
     }, []);
