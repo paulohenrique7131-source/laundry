@@ -223,14 +223,23 @@ export async function clearHistory(startDate?: string, endDate?: string, typeFil
 }
 
 // ====== USERS ======
+const ROLE_EMAIL_MAP: Record<string, string> = {
+    manager: 'manager@lavanderia.local',
+    gov: 'gov@lavanderia.local',
+};
+
 export async function getUsers(): Promise<{ id: string; role: string; email: string }[]> {
-    // Mock for now, or fetch from profiles if RLS allows
-    // In real app: supabase.from('profiles').select('*')
-    return [
-        { id: 'manager-id', role: 'manager', email: 'manager@lavanderia.local' },
-        { id: 'gov-id', role: 'gov', email: 'gov@lavanderia.local' },
-        // ... fetching real users would require admin role or public profiles
-    ];
+    const { data, error } = await supabase
+        .from('profiles')
+        .select('id, role');
+
+    if (error || !data) return [];
+
+    return data.map((profile: { id: string; role: string }) => ({
+        id: profile.id,
+        role: profile.role,
+        email: ROLE_EMAIL_MAP[profile.role] || `${profile.role}@lavanderia.local`,
+    }));
 }
 
 // ====== NOTES ======
@@ -275,38 +284,39 @@ export async function addNote(note: Note) {
 }
 
 export async function updateNote(note: Note) {
-    // If updating, usually we verify ownership, but for "mark as read" any recipient can update?
-    // We'll trust the RLS policies in Supabase to handle "who can update what".
-    // For now, simpler simulation:
     const userId = await getUserId();
-    const { error } = await supabase
+    // Only the owner can update content/visibility/recipients
+    await supabase
         .from('notes')
         .update({
             content: note.content,
             visibility: note.visibility,
             recipients: note.recipients,
-            read_by: note.readBy,
             updated_at: new Date().toISOString(),
         })
-        .eq('id', note.id);
-    // .eq('user_id', userId); // Removed strictly user_id check to allow recipients to mark as read? 
-    // Actually, if I update content, I must be owner. If I update read_by, I can be recipient.
-    // This logic is complex for simple update. Let's assume only owner updates content.
-    // For "Mark as read", we might need a separate function or specific logic.
+        .eq('id', note.id)
+        .eq('user_id', userId); // Owner-only guard
 }
 
 export async function markNoteAsRead(noteId: string) {
     const userId = await getUserId();
-    // Fetch current read_by
-    const { data } = await supabase.from('notes').select('read_by').eq('id', noteId).single();
-    const currentReadBy = (data?.read_by as string[]) || [];
+    // Append userId to read_by array (Supabase supports array_append via RPC or manual merge)
+    const { data } = await supabase
+        .from('notes')
+        .select('read_by')
+        .eq('id', noteId)
+        .single();
+
+    const currentReadBy: string[] = (data?.read_by as string[]) || [];
 
     if (!currentReadBy.includes(userId)) {
-        await supabase.from('notes').update({
-            read_by: [...currentReadBy, userId]
-        }).eq('id', noteId);
+        await supabase
+            .from('notes')
+            .update({ read_by: [...currentReadBy, userId] })
+            .eq('id', noteId);
     }
 }
+
 
 export async function deleteNote(id: string) {
     const userId = await getUserId();
