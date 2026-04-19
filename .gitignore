@@ -2,6 +2,9 @@
 
 # dependencies
 /node_modules
+/apps/**/node_modules/
+/packages/**/node_modules/
+/apps/mobile/node_modules/
 /.pnp
 .pnp.*
 .yarn/*
@@ -19,10 +22,14 @@
 
 # next.js
 /.next/
+/apps/**/.next/
 /out/
+/.cxx/
 
 # production
 /build
+/apps/mobile/android/build/
+/apps/mobile/android/app/build/
 
 # misc
 .DS_Store
@@ -39,6 +46,13 @@ yarn-error.log*
 
 # vercel
 .vercel
+
+# expo
+.expo/
+apps/mobile/.expo/
+apps/mobile/android/keystore.properties
+apps/mobile/android/**/*.jks
+apps/mobile/android/**/*.keystore
 
 # typescript
 *.tsbuildinfo
