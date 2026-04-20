@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { getSettings, setSettings } from '@/storage/db';
@@ -27,13 +27,17 @@ const defaults: AppSettings = {
     customCatalogs: [],
 };
 
+function coerceDarkTheme(settings: AppSettings): AppSettings {
+    return { ...settings, theme: 'dark' };
+}
+
 const AppContext = createContext<AppCtx>({
     ready: false,
     settings: defaults,
-    updateSettings: () => { },
-    saveSettings: async () => { },
+    updateSettings: () => {},
+    saveSettings: async () => {},
     theme: 'dark',
-    toggleTheme: () => { },
+    toggleTheme: () => {},
 });
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
@@ -42,7 +46,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const [settings, setSettingsState] = useState<AppSettings>(defaults);
     const loadedForUser = useRef<string | null>(null);
 
-    // Load settings ONCE per user ID (stable string, not object reference)
+    const withTimeout = useCallback(async <T,>(promise: PromiseLike<T>, fallback: T, timeoutMs = 8000): Promise<T> => {
+        let timer: ReturnType<typeof setTimeout> | null = null;
+
+        try {
+            return await Promise.race([
+                promise,
+                new Promise<T>((resolve) => {
+                    timer = setTimeout(() => resolve(fallback), timeoutMs);
+                }),
+            ]);
+        } finally {
+            if (timer) clearTimeout(timer);
+        }
+    }, []);
+
     useEffect(() => {
         if (authLoading) return;
 
@@ -53,62 +71,58 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             return;
         }
 
-        // Skip if already loaded for this user
         if (loadedForUser.current === userId) return;
 
         let cancelled = false;
-        (async () => {
+        void (async () => {
             try {
-                const s = await getSettings();
+                const s = await withTimeout(getSettings(), defaults);
                 if (cancelled) return;
-                const current = { ...defaults, ...s };
+                const current = coerceDarkTheme({ ...defaults, ...s });
                 setSettingsState(current);
                 loadedForUser.current = userId;
 
-                // Apply CSS variables
                 document.documentElement.style.setProperty('--glass-blur', `${current.blurIntensity}px`);
                 document.documentElement.style.setProperty('--card-opacity', `${current.cardOpacity}`);
                 document.documentElement.style.setProperty('--modal-opacity-mid', `${current.modalOpacityMiddle}`);
                 document.documentElement.style.setProperty('--modal-opacity-avg', `${current.modalOpacityAverage}`);
                 document.documentElement.style.setProperty('--modal-opacity-edge', `${current.modalOpacityEdges}`);
             } catch {
-                // Auth might have expired — use defaults
                 if (!cancelled) setSettingsState(defaults);
+            } finally {
+                if (!cancelled) setReady(true);
             }
-            if (!cancelled) setReady(true);
         })();
 
-        return () => { cancelled = true; };
-    }, [userId, authLoading]);
+        return () => {
+            cancelled = true;
+        };
+    }, [userId, authLoading, withTimeout]);
 
     useEffect(() => {
-        document.documentElement.setAttribute('data-theme', settings.theme);
-        document.documentElement.classList.toggle('dark', settings.theme === 'dark');
+        document.documentElement.setAttribute('data-theme', 'dark');
+        document.documentElement.classList.add('dark');
     }, [settings.theme]);
 
-    // Local-only update (no network call — for real-time slider preview)
     const updateSettings = useCallback((partial: Partial<AppSettings>) => {
-        setSettingsState(prev => ({ ...prev, ...partial }));
+        setSettingsState((prev) => coerceDarkTheme({ ...prev, ...partial }));
     }, []);
 
-    // Persist to Supabase (called explicitly by save button)
     const saveSettings = useCallback(async () => {
         try {
-            await setSettings(settings);
+            await setSettings(coerceDarkTheme(settings));
         } catch {
-            // Silently fail — user might not be authenticated
+            // Silently fail if the user is not authenticated.
         }
     }, [settings]);
 
     const toggleTheme = useCallback(() => {
-        const next = settings.theme === 'dark' ? 'light' : 'dark';
-        setSettingsState(prev => ({ ...prev, theme: next }));
-        // Theme is saved immediately (not deferred)
-        setSettings({ theme: next }).catch(() => { });
-    }, [settings.theme]);
+        setSettingsState((prev) => coerceDarkTheme(prev));
+        setSettings({ theme: 'dark' }).catch(() => {});
+    }, []);
 
     return (
-        <AppContext.Provider value={{ ready, settings, updateSettings, saveSettings, theme: settings.theme, toggleTheme }}>
+        <AppContext.Provider value={{ ready, settings, updateSettings, saveSettings, theme: 'dark', toggleTheme }}>
             {children}
         </AppContext.Provider>
     );

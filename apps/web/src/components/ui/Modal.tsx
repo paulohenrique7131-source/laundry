@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useEffect, useRef } from 'react';
 
@@ -32,9 +32,10 @@ export function Modal({ open, onClose, title, children, large }: ModalProps) {
                         <h2 className="text-lg font-bold text-gradient">{title}</h2>
                         <button
                             onClick={onClose}
+                            aria-label="Fechar modal"
                             className="btn-ghost btn-icon rounded-full text-lg hover:text-[var(--accent)]"
                         >
-                            ✕
+                            x
                         </button>
                     </div>
                 )}
@@ -81,3 +82,4 @@ export function Confirm({ open, onConfirm, onCancel, title, message, confirmText
         </div>
     );
 }
+

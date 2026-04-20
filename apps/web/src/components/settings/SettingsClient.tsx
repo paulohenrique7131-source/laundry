@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useApp } from '@/context/AppContext';
@@ -10,7 +10,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 
 export default function SettingsClient() {
-    const { settings, updateSettings, saveSettings, theme, toggleTheme } = useApp();
+    const { settings, updateSettings, saveSettings } = useApp();
     const { signOut, user } = useAuth();
     const { toast } = useToast();
     const [activeTab, setActiveTab] = useState<'appearance' | 'tables' | 'account'>('appearance');
@@ -26,7 +26,7 @@ export default function SettingsClient() {
     const [confirmPassword, setConfirmPassword] = useState('');
     const [loadingPass, setLoadingPass] = useState(false);
 
-    // Simple dirty flag — any slider change sets it to true
+    // Simple dirty flag â€” any slider change sets it to true
     const [isDirty, setIsDirty] = useState(false);
     const [showExitModal, setShowExitModal] = useState(false);
 
@@ -52,11 +52,10 @@ export default function SettingsClient() {
         window.addEventListener('beforeunload', handleBeforeUnload);
         return () => window.removeEventListener('beforeunload', handleBeforeUnload);
     }, [isDirty]);
-
     const handleSave = useCallback(async () => {
         await saveSettings();
         setIsDirty(false);
-        toast('Configurações salvas!', 'success');
+        toast('Configuracoes salvas!', 'success');
     }, [saveSettings, toast]);
 
     const handleDiscard = useCallback(() => {
@@ -78,13 +77,13 @@ export default function SettingsClient() {
         const newSettings = { customCatalogs: [...currentCustom, newCat] };
         updateSettings(newSettings);
         setNewCatalogName('');
-        toast('Catálogo criado! Lembre-se de salvar.', 'success');
+        toast('Catalogo criado. Lembre-se de salvar.', 'success');
     };
 
     const handleRemoveCatalog = (id: string) => {
         const currentCustom = settings.customCatalogs || [];
         updateSettings({ customCatalogs: currentCustom.filter(c => c.id !== id) });
-        toast('Catálogo removido. Lembre-se de salvar.', 'info');
+        toast('Catalogo removido. Lembre-se de salvar.', 'info');
     };
 
     function openItemsModal(type: string) {
@@ -99,7 +98,7 @@ export default function SettingsClient() {
             return;
         }
         if (newPassword !== confirmPassword) {
-            toast('As senhas não conferem', 'error');
+            toast('As senhas nao conferem', 'error');
             return;
         }
 
@@ -127,7 +126,7 @@ export default function SettingsClient() {
         <div className="space-y-8">
             <div className="flex items-center justify-between flex-wrap gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold">Configurações</h1>
+                    <h1 className="text-3xl font-bold">Configuracoes</h1>
                     <p className="text-sm text-[var(--text-muted)] mt-1">Personalize o app ao seu gosto</p>
                 </div>
                 {isDirty && activeTab === 'appearance' && (
@@ -142,7 +141,7 @@ export default function SettingsClient() {
                             onClick={handleSave}
                             className="text-sm px-6 py-2.5 rounded-xl font-semibold text-black bg-gradient-to-r from-amber-500 to-orange-500 shadow-lg hover:shadow-amber-500/30 transition-all duration-300 cursor-pointer"
                         >
-                            💾 Salvar Alterações
+                            Salvar alteracoes
                         </button>
                     </div>
                 )}
@@ -154,48 +153,30 @@ export default function SettingsClient() {
                     onClick={() => setActiveTab('appearance')}
                     className={`px-5 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${activeTab === 'appearance' ? 'bg-[var(--glass-hover)] shadow-sm text-[var(--text-primary)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
                 >
-                    🎨 Aparência
+                    Aparencia
                 </button>
                 <button
                     onClick={() => setActiveTab('tables')}
                     className={`px-5 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${activeTab === 'tables' ? 'bg-[var(--glass-hover)] shadow-sm text-[var(--text-primary)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
                 >
-                    📊 Tabelas e Valores
+                    Tabelas e valores
                 </button>
                 <button
                     onClick={() => setActiveTab('account')}
                     className={`px-5 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${activeTab === 'account' ? 'bg-[var(--glass-hover)] shadow-sm text-[var(--text-primary)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
                 >
-                    👤 Conta
+                    Conta
                 </button>
             </div>
 
             {/* TAB: Appearance */}
             {activeTab === 'appearance' && (
                 <div className="glass-card p-8 animate-fade-in">
-                    <h2 className="text-xl font-semibold mb-6">Personalização Visual</h2>
+                    <h2 className="text-xl font-semibold mb-6">Personalizacao visual</h2>
 
                     <div className="flex flex-col lg:flex-row gap-8">
                         {/* Controls column */}
                         <div className="flex-1 space-y-6">
-                            {/* Theme toggle */}
-                            <div className="flex items-center justify-between p-4 rounded-xl bg-[var(--glass-bg)] border border-[var(--glass-border)]">
-                                <div>
-                                    <p className="text-sm font-semibold">Tema</p>
-                                    <p className="text-xs text-[var(--text-muted)]">Alterne entre claro e escuro</p>
-                                </div>
-                                <button
-                                    onClick={toggleTheme}
-                                    className={`relative w-14 h-7 rounded-full transition-colors duration-300 ${theme === 'dark' ? 'bg-amber-500/30' : 'bg-sky-400/30'
-                                        }`}
-                                >
-                                    <div className={`absolute top-0.5 w-6 h-6 rounded-full flex items-center justify-center text-sm transition-all duration-300 ${theme === 'dark' ? 'left-0.5 bg-amber-400' : 'left-7 bg-sky-400'
-                                        }`}>
-                                        {theme === 'dark' ? '🌙' : '☀️'}
-                                    </div>
-                                </button>
-                            </div>
-
                             <div className="divider" />
                             <p className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">Cards &amp; Fundos</p>
 
@@ -240,92 +221,30 @@ export default function SettingsClient() {
                                 />
                             </div>
 
-                            <div className="divider" />
-                            <p className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">Pop-ups (Modais)</p>
-
-                            {/* Modal Middle Opacity */}
-                            <div>
-                                <div className="flex items-center justify-between mb-2">
-                                    <p className="text-sm font-medium">Opacidade Central</p>
-                                    <span className="text-xs text-[var(--text-muted)] tabular-nums font-mono">{(modalMid * 100).toFixed(0)}%</span>
-                                </div>
-                                <input
-                                    type="range"
-                                    min="0"
-                                    max="100"
-                                    value={modalMid * 100}
-                                    onChange={(e) => {
-                                        const v = parseInt(e.target.value) / 100;
-                                        handleSettingChange({ modalOpacityMiddle: v });
-                                        document.documentElement.style.setProperty('--modal-opacity-mid', `${v}`);
-                                    }}
-                                    className="w-full accent-[var(--accent)] h-1.5 rounded-full appearance-none bg-[var(--glass-border)] cursor-pointer"
-                                />
-                            </div>
-
-                            {/* Modal Average Opacity */}
-                            <div>
-                                <div className="flex items-center justify-between mb-2">
-                                    <p className="text-sm font-medium">Opacidade Média</p>
-                                    <span className="text-xs text-[var(--text-muted)] tabular-nums font-mono">{(modalAvg * 100).toFixed(0)}%</span>
-                                </div>
-                                <input
-                                    type="range"
-                                    min="0"
-                                    max="100"
-                                    value={modalAvg * 100}
-                                    onChange={(e) => {
-                                        const v = parseInt(e.target.value) / 100;
-                                        handleSettingChange({ modalOpacityAverage: v });
-                                        document.documentElement.style.setProperty('--modal-opacity-avg', `${v}`);
-                                    }}
-                                    className="w-full accent-[var(--accent)] h-1.5 rounded-full appearance-none bg-[var(--glass-border)] cursor-pointer"
-                                />
-                            </div>
-
-                            {/* Modal Edge Opacity */}
-                            <div>
-                                <div className="flex items-center justify-between mb-2">
-                                    <p className="text-sm font-medium">Opacidade Extremidades</p>
-                                    <span className="text-xs text-[var(--text-muted)] tabular-nums font-mono">{(modalEdge * 100).toFixed(0)}%</span>
-                                </div>
-                                <input
-                                    type="range"
-                                    min="0"
-                                    max="100"
-                                    value={modalEdge * 100}
-                                    onChange={(e) => {
-                                        const v = parseInt(e.target.value) / 100;
-                                        handleSettingChange({ modalOpacityEdges: v });
-                                        document.documentElement.style.setProperty('--modal-opacity-edge', `${v}`);
-                                    }}
-                                    className="w-full accent-[var(--accent)] h-1.5 rounded-full appearance-none bg-[var(--glass-border)] cursor-pointer"
-                                />
-                            </div>
                         </div>
 
                         {/* Live Preview column */}
                         <div className="w-full lg:w-80 space-y-4">
-                            <p className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider text-center">Preview em Tempo Real</p>
+                            <p className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider text-center">Preview em tempo real</p>
 
-                            {/* Card preview — blur on background text */}
+                            {/* Card preview â€” blur on background text */}
                             <div className="relative rounded-2xl overflow-hidden min-h-[200px]">
-                                {/* Background text — bright white, blur applied directly */}
+                                {/* Background text â€” bright white, blur applied directly */}
                                 <div
                                     className="absolute inset-0 p-4 text-xs leading-relaxed pointer-events-none select-none"
                                     style={{ color: 'rgba(255, 255, 255, 0.92)', filter: `blur(${blur}px)`, transition: 'filter 0.3s ease' }}
                                 >
-                                    <p className="font-bold text-sm mb-2" style={{ color: '#f59e0b' }}>Lavanderia — Registro #4821</p>
-                                    <p>Camisa Social ×3 — R$ 45,00</p>
-                                    <p>Calça Jeans ×2 — R$ 30,00</p>
-                                    <p>Lençol King ×1 — R$ 28,00</p>
-                                    <p>Toalha de Banho ×4 — R$ 52,00</p>
+                                    <p className="font-bold text-sm mb-2" style={{ color: '#f59e0b' }}>Washly - Registro #4821</p>
+                                    <p>Camisa Social x3 - R$ 45,00</p>
+                                    <p>Calca Jeans x2 - R$ 30,00</p>
+                                    <p>Lencol King x1 - R$ 28,00</p>
+                                    <p>Toalha de Banho x4 - R$ 52,00</p>
                                     <p className="mt-2 font-semibold">Subtotal: R$ 155,00</p>
-                                    <p className="font-bold" style={{ color: '#f59e0b' }}>Total (×1.5): R$ 232,50</p>
+                                    <p className="font-bold" style={{ color: '#f59e0b' }}>Total (x1.5): R$ 232,50</p>
                                     <p className="mt-3">Data: 12/02/2026</p>
-                                    <p>Tipo: Serviços — Expresso</p>
-                                    <p className="mt-2">Cliente: Governança • #0042</p>
-                                    <p>Obs: Peças urgentes p/ evento</p>
+                                    <p>Tipo: Servicos - Expresso</p>
+                                    <p className="mt-2">Cliente: Governanca - #0042</p>
+                                    <p>Obs: Pecas urgentes p/ evento</p>
                                 </div>
 
                                 {/* Card overlay */}
@@ -335,7 +254,7 @@ export default function SettingsClient() {
                                     }}
                                 >
                                     <div className="flex items-center gap-3 mb-3">
-                                        <div className="w-8 h-8 rounded-lg bg-amber-500/20 flex items-center justify-center text-sm">📊</div>
+                                        <div className="w-8 h-8 rounded-lg bg-amber-500/20 flex items-center justify-center text-sm font-bold">W</div>
                                         <div>
                                             <p className="text-sm font-semibold">Resumo do Pedido</p>
                                             <p className="text-xs text-[var(--text-muted)]">Comanda #4821</p>
@@ -352,19 +271,19 @@ export default function SettingsClient() {
                                 </div>
                             </div>
 
-                            {/* Modal preview — blur on background text */}
+                            {/* Modal preview â€” blur on background text */}
                             <div className="relative rounded-2xl overflow-hidden min-h-[160px]">
-                                {/* Background text — bright white */}
+                                {/* Background text â€” bright white */}
                                 <div
                                     className="absolute inset-0 p-3 text-xs leading-relaxed pointer-events-none select-none"
                                     style={{ color: 'rgba(255, 255, 255, 0.88)', filter: `blur(${blur}px)`, transition: 'filter 0.3s ease' }}
                                 >
-                                    <p className="font-bold" style={{ color: '#f59e0b' }}>🧮 Calculadora de Serviços</p>
-                                    <p className="mt-1">Fronha ×6 — R$ 18,00</p>
-                                    <p>Edredom Queen ×1 — R$ 65,00</p>
-                                    <p>Cobertor ×2 — R$ 44,00</p>
+                                    <p className="font-bold" style={{ color: '#f59e0b' }}>Calculadora de Servicos</p>
+                                    <p className="mt-1">Fronha x6 - R$ 18,00</p>
+                                    <p>Edredom Queen x1 - R$ 65,00</p>
+                                    <p>Cobertor x2 - R$ 44,00</p>
                                     <p className="mt-1 font-bold" style={{ color: '#f59e0b' }}>R$ 127,00</p>
-                                    <p className="mt-1">Notas: 3 anotações ativas</p>
+                                    <p className="mt-1">Notas: 3 anotacoes ativas</p>
                                 </div>
 
                                 <div className="relative z-10 rounded-2xl p-5 border border-[var(--glass-border)] transition-all duration-300"
@@ -373,10 +292,10 @@ export default function SettingsClient() {
                                     }}
                                 >
                                     <div className="flex items-center justify-between mb-3">
-                                        <p className="text-sm font-bold text-gradient">Confirmar Exclusão</p>
-                                        <span className="text-xs opacity-60">✕</span>
+                                        <p className="text-sm font-bold text-gradient">Confirmar exclusao</p>
+                                        <span className="text-xs opacity-60">x</span>
                                     </div>
-                                    <p className="text-xs text-white/80 mb-3">Deseja realmente excluir este registro do histórico?</p>
+                                    <p className="text-xs text-white/80 mb-3">Deseja realmente excluir este registro do historico?</p>
                                     <div className="flex gap-2 mt-4 justify-end">
                                         <div className="px-3 py-1.5 text-xs rounded-lg bg-white/10 text-white/70">Cancelar</div>
                                         <div className="px-3 py-1.5 text-xs rounded-lg bg-gradient-to-r from-amber-500 to-amber-600 text-black font-semibold">Confirmar</div>
@@ -394,21 +313,21 @@ export default function SettingsClient() {
             {activeTab === 'tables' && (
                 <div className="space-y-6 animate-fade-in">
                     <div className="glass-card p-8">
-                        <h2 className="text-xl font-semibold mb-3">📦 Catálogos Padrão</h2>
-                        <p className="text-sm text-[var(--text-secondary)] mb-6">Estes são os catálogos básicos do sistema. Você pode editar os itens e preços.</p>
+                        <h2 className="text-xl font-semibold mb-3">Catalogos padrao</h2>
+                        <p className="text-sm text-[var(--text-secondary)] mb-6">Estes sao os catalogos basicos do sistema. Voce pode editar os itens e precos.</p>
                         <div className="flex flex-wrap gap-4">
                             <button className="btn btn-secondary" onClick={() => openItemsModal('services')}>
-                                🛠️ Editar Serviços (Lavanderia)
+                                Editar Servicos (Washly)
                             </button>
                             <button className="btn btn-secondary" onClick={() => openItemsModal('trousseau')}>
-                                🛏️ Editar Enxoval
+                                Editar Enxoval
                             </button>
                         </div>
                     </div>
 
                     <div className="glass-card p-8 animate-fade-in relative overflow-hidden">
                         <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-amber-500/50 to-orange-600/50"></div>
-                        <h2 className="text-xl font-semibold mb-3">✨ Catálogos Personalizados</h2>
+                        <h2 className="text-xl font-semibold mb-3">Catalogos personalizados</h2>
                         <p className="text-sm text-[var(--text-secondary)] mb-6">Crie tabelas para outros setores (Restaurante, Frigobar, etc).</p>
 
                         <div className="space-y-4">
@@ -417,19 +336,19 @@ export default function SettingsClient() {
                                 <div key={cat.id} className="flex items-center justify-between p-4 bg-[var(--bg-secondary)] rounded-xl border border-[var(--glass-border)]">
                                     <div className="flex items-center gap-3">
                                         <div className="w-10 h-10 rounded-lg bg-[var(--glass-hover)] flex items-center justify-center text-xl">
-                                            {cat.type === 'service' ? '🧺' : '📦'}
+                                            {cat.type === 'service' ? 'SV' : 'CT'}
                                         </div>
                                         <div>
                                             <h3 className="font-medium">{cat.name}</h3>
-                                            <p className="text-xs text-[var(--text-muted)] capitalize">{cat.type === 'service' ? 'Serviço (LP/P)' : 'Produto (Preço Único)'}</p>
+                                            <p className="text-xs text-[var(--text-muted)] capitalize">{cat.type === 'service' ? 'Servico (LP/P)' : 'Produto (Preco unico)'}</p>
                                         </div>
                                     </div>
                                     <div className="flex gap-2">
                                         <button className="btn btn-sm btn-secondary" onClick={() => openItemsModal(cat.id)}>
-                                            ✏️ Editar Itens
+                                            Editar itens
                                         </button>
                                         <button className="btn btn-sm btn-ghost text-red-400 hover:bg-red-400/10" onClick={() => handleRemoveCatalog(cat.id)}>
-                                            🗑️
+                                            Excluir
                                         </button>
                                     </div>
                                 </div>
@@ -438,7 +357,7 @@ export default function SettingsClient() {
                             {/* Add New */}
                             <div className="p-4 border-2 border-dashed border-[var(--glass-border)] rounded-xl flex flex-col md:flex-row gap-4 items-end md:items-center">
                                 <div className="flex-1 w-full">
-                                    <label className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-1 block">Nome do Catálogo</label>
+                                    <label className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-1 block">Nome do catalogo</label>
                                     <input
                                         className="input"
                                         placeholder="Ex: Frigobar, Restaurante..."
@@ -454,7 +373,7 @@ export default function SettingsClient() {
                                         onChange={(e: any) => setNewCatalogType(e.target.value)}
                                     >
                                         <option value="product">Produto Simples</option>
-                                        <option value="service" >Serviço (LP/P)</option>
+                                        <option value="service" >Servico (LP/P)</option>
                                     </select>
                                 </div>
                                 <button
@@ -474,7 +393,7 @@ export default function SettingsClient() {
             {activeTab === 'account' && (
                 <div className="glass-card p-8 flex flex-col items-center animate-fade-in max-w-2xl mx-auto">
                     <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-500/20 to-orange-600/20 flex items-center justify-center mb-6 text-3xl">
-                        👤
+                        W
                     </div>
                     <h2 className="text-2xl font-bold mb-2">Gerenciamento de Conta</h2>
                     <p className="text-[var(--text-secondary)] mb-8">
@@ -487,7 +406,7 @@ export default function SettingsClient() {
                             <input
                                 type="password"
                                 className="input"
-                                placeholder="Mínimo 6 caracteres"
+                                placeholder=""
                                 value={newPassword}
                                 onChange={(e) => setNewPassword(e.target.value)}
                             />
@@ -497,7 +416,7 @@ export default function SettingsClient() {
                             <input
                                 type="password"
                                 className="input"
-                                placeholder="Repita a nova senha"
+                                placeholder=""
                                 value={confirmPassword}
                                 onChange={(e) => setConfirmPassword(e.target.value)}
                             />
@@ -514,12 +433,12 @@ export default function SettingsClient() {
                     <div className="w-full h-px bg-[var(--glass-border)] mb-8"></div>
 
                     <div className="w-full max-w-sm">
-                        <h3 className="text-lg font-semibold mb-3 text-left">Ações da Sessão</h3>
+                        <h3 className="text-lg font-semibold mb-3 text-left">Acoes da sessao</h3>
                         <button
                             className="btn btn-secondary w-full text-red-400 hover:bg-red-400/10 border-red-400/20"
                             onClick={handleSignOut}
                         >
-                            🚪 Sair da Conta
+                            Sair da conta
                         </button>
                     </div>
                 </div>
@@ -530,7 +449,7 @@ export default function SettingsClient() {
                 open={itemsModalOpen}
                 onClose={() => setItemsModalOpen(false)}
                 catalogType={itemsCatalog}
-                onSaved={() => toast('Catálogo atualizado!', 'info')}
+                onSaved={() => toast('Catalogo atualizado.', 'info')}
             />
 
             {/* Unsaved Changes Confirm Modal */}
@@ -539,14 +458,14 @@ export default function SettingsClient() {
                     <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowExitModal(false)} />
                     <div className="relative z-10 glass-card p-8 max-w-md w-full space-y-5 animate-scale-in">
                         <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center text-lg">⚠️</div>
+                            <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center text-lg font-bold">!</div>
                             <div>
-                                <h3 className="text-lg font-bold">Descartar alterações?</h3>
-                                <p className="text-xs text-[var(--text-muted)]">Suas configurações de aparência foram modificadas</p>
+                                <h3 className="text-lg font-bold">Descartar alteracoes?</h3>
+                                <p className="text-xs text-[var(--text-muted)]">Suas configuracoes de aparencia foram modificadas</p>
                             </div>
                         </div>
                         <p className="text-sm text-[var(--text-secondary)]">
-                            Todas as alterações feitas nos sliders serão perdidas. Deseja continuar?
+                            Todas as alteracoes feitas nos sliders serao perdidas. Deseja continuar?
                         </p>
                         <div className="flex gap-3 justify-end">
                             <button
@@ -559,7 +478,7 @@ export default function SettingsClient() {
                                 onClick={handleDiscard}
                                 className="btn text-sm px-5 py-2 rounded-xl font-semibold text-white bg-red-500/80 hover:bg-red-500 transition-colors cursor-pointer"
                             >
-                                🗑️ Descartar
+                                Descartar
                             </button>
                         </div>
                     </div>

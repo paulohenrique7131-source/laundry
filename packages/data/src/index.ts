@@ -3,9 +3,11 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import {
   DEFAULT_SETTINGS,
   USER_MAP,
+  normalizeStatisticsTypeFilter,
   mergeAppSettings,
   type AppSettings,
   type AppUserProfile,
+  type HistoryType,
   type HistoryItemDetail,
   type HistoryRecord,
   type JobRun,
@@ -20,6 +22,41 @@ interface EnvPair {
   url: string;
   key: string;
 }
+
+const INTERNAL_HISTORY_NOTE_PREFIX = '[[history-note]]';
+
+const HISTORY_ITEMS_SELECT = [
+  'id',
+  'history_id',
+  'item_id',
+  'name',
+  'price_lp',
+  'price_p',
+  'price',
+  'qty_lp',
+  'qty_p',
+  'qty',
+  'line_total',
+].join(',');
+
+const HISTORY_SELECT_FIELDS = [
+  'id',
+  'user_id',
+  'date',
+  'type',
+  'service_type',
+  'subtotal',
+  'multiplier',
+  'total',
+  'notes',
+  'author',
+  'author_id',
+  'created_at',
+  'updated_at',
+].join(',');
+
+const HISTORY_SELECT_WITH_NOTES = `${HISTORY_SELECT_FIELDS},history_items(${HISTORY_ITEMS_SELECT})`;
+const HISTORY_SELECT_LEGACY = HISTORY_SELECT_WITH_NOTES.replace('notes,', '');
 
 function envValue(...names: string[]): string | undefined {
   const staticEnvMap: Record<string, string | undefined> = {
@@ -65,6 +102,32 @@ function hasMissingHistoryNotesColumn(error: unknown): boolean {
   return message.includes('history.notes') || (message.includes('column') && message.includes('notes'));
 }
 
+function isInternalHistoryNote(content?: string | null): boolean {
+  return typeof content === 'string' && content.startsWith(INTERNAL_HISTORY_NOTE_PREFIX);
+}
+
+function encodeInternalHistoryNote(content: string): string {
+  return `${INTERNAL_HISTORY_NOTE_PREFIX}${content}`;
+}
+
+function decodeInternalHistoryNote(content?: string | null): string | undefined {
+  if (!content || !isInternalHistoryNote(content)) return undefined;
+  return content.slice(INTERNAL_HISTORY_NOTE_PREFIX.length);
+}
+
+function noteTimestamp(note: { updatedAt?: string; createdAt?: string }): number {
+  const value = note.updatedAt || note.createdAt;
+  if (!value) return 0;
+  const parsed = Date.parse(value);
+  return Number.isNaN(parsed) ? 0 : parsed;
+}
+
+function normalizeHistoryTypeFilter(value?: string): 'Ambos' | HistoryType {
+  if (!value) return 'Ambos';
+  const normalized = normalizeStatisticsTypeFilter(value);
+  return normalized === 'Ambos' ? 'Ambos' : normalized;
+}
+
 function mapHistoryItem(row: Record<string, unknown>): HistoryItemDetail {
   return {
     itemId: row.item_id as string,
@@ -79,7 +142,7 @@ function mapHistoryItem(row: Record<string, unknown>): HistoryItemDetail {
   };
 }
 
-function mapHistoryRecord(row: Record<string, unknown>): HistoryRecord {
+function mapHistoryRecord(row: Record<string, unknown>, notesOverride?: string): HistoryRecord {
   return {
     id: row.id as string,
     date: row.date as string,
@@ -89,7 +152,7 @@ function mapHistoryRecord(row: Record<string, unknown>): HistoryRecord {
     subtotal: Number(row.subtotal ?? 0),
     multiplier: Number(row.multiplier ?? 1),
     total: Number(row.total ?? 0),
-    notes: (row.notes as string) || undefined,
+    notes: notesOverride ?? ((row.notes as string) || undefined),
     createdAt: row.created_at as string,
     updatedAt: (row.updated_at as string) || undefined,
     author: (row.author as string) || undefined,
@@ -144,6 +207,83 @@ export function createLaundryRepository(
     throw new Error('Not authenticated');
   }
 
+  async function getInternalHistoryNotesMap(recordIds: string[]): Promise<Map<string, string>> {
+    if (recordIds.length === 0) return new Map();
+
+    const { data, error } = await supabase
+      .from('notes')
+      .select('related_record_id, content, updated_at, created_at')
+      .in('related_record_id', recordIds)
+      .order('updated_at', { ascending: false });
+
+    if (error || !data) {
+      if (throwOnReadError && error) throw error;
+      return new Map();
+    }
+
+    const byRecord = new Map<string, string>();
+    for (const row of data as Record<string, unknown>[]) {
+      const relatedRecordId = row.related_record_id as string | null;
+      const content = decodeInternalHistoryNote(row.content as string | null);
+      if (!relatedRecordId || !content || byRecord.has(relatedRecordId)) continue;
+      byRecord.set(relatedRecordId, content);
+    }
+
+    return byRecord;
+  }
+
+  async function syncInternalHistoryNote(record: HistoryRecord) {
+    const userId = await getUserId();
+    const noteContent = record.notes?.trim();
+
+    const { data: existing, error: lookupError } = await supabase
+      .from('notes')
+      .select('id, content')
+      .eq('related_record_id', record.id)
+      .eq('user_id', userId);
+
+    if (lookupError) throw lookupError;
+
+    const internalRows = (existing ?? []).filter((row: Record<string, unknown>) =>
+      isInternalHistoryNote((row.content as string | null) ?? null),
+    );
+
+    if (!noteContent) {
+      if (internalRows.length > 0) {
+        const { error: deleteError } = await supabase.from('notes').delete().in(
+          'id',
+          internalRows.map((row: Record<string, unknown>) => row.id as string),
+        );
+        if (deleteError) throw deleteError;
+      }
+      return;
+    }
+
+    const payload = {
+      content: encodeInternalHistoryNote(noteContent),
+      author_role: record.author ? ((record.author === 'Ger\u00eancia' ? 'manager' : 'gov')) : null,
+      visibility: 'private',
+      recipients: [],
+      read_by: [],
+      related_record_id: record.id,
+      updated_at: new Date().toISOString(),
+    };
+
+    if (internalRows[0]) {
+      const { error: updateError } = await supabase.from('notes').update(payload).eq('id', internalRows[0].id as string);
+      if (updateError) throw updateError;
+      return;
+    }
+
+    const { error: insertError } = await supabase.from('notes').insert({
+      id: uuidv4(),
+      user_id: userId,
+      created_at: record.createdAt,
+      ...payload,
+    });
+    if (insertError) throw insertError;
+  }
+
   async function getConfig(docId: string): Promise<CatalogItems> {
     const userId = await getUserId();
     const { data, error } = await supabase
@@ -177,18 +317,30 @@ export function createLaundryRepository(
   async function getHistory(
     startDate?: string,
     endDate?: string,
-    typeFilter?: 'Ambos' | 'Serviços' | 'Enxoval',
+    typeFilter?: string,
   ): Promise<HistoryRecord[]> {
-    let query = supabase
-      .from('history')
-      .select('*, history_items(*)')
-      .order('date', { ascending: false });
+    const normalizedTypeFilter = normalizeHistoryTypeFilter(typeFilter);
 
-    if (startDate) query = query.gte('date', startDate);
-    if (endDate) query = query.lte('date', endDate);
-    if (typeFilter && typeFilter !== 'Ambos') query = query.eq('type', typeFilter);
+    const runQuery = async (selectClause: string) => {
+      let query = supabase
+        .from('history')
+        .select(selectClause)
+        .order('date', { ascending: false });
 
-    const { data, error } = await query;
+      if (startDate) query = query.gte('date', startDate);
+      if (endDate) query = query.lte('date', endDate);
+      if (normalizedTypeFilter !== 'Ambos') query = query.eq('type', normalizedTypeFilter);
+      return query;
+    };
+
+    let { data, error } = await runQuery(HISTORY_SELECT_WITH_NOTES);
+    let usesFallbackNotes = false;
+
+    if (error && hasMissingHistoryNotesColumn(error)) {
+      ({ data, error } = await runQuery(HISTORY_SELECT_LEGACY));
+      usesFallbackNotes = true;
+    }
+
     if (error) {
       if (throwOnReadError) throw error;
       return [];
@@ -198,7 +350,18 @@ export function createLaundryRepository(
       return [];
     }
 
-    return (data as Record<string, unknown>[]).map(mapHistoryRecord);
+    const rows = data as unknown as Record<string, unknown>[];
+    const notesByRecordId = await getInternalHistoryNotesMap(
+      usesFallbackNotes
+        ? rows.map((row) => row.id as string)
+        : rows.filter((row) => !row.notes).map((row) => row.id as string),
+    );
+
+    if (!usesFallbackNotes && notesByRecordId.size === 0) {
+      return rows.map((row) => mapHistoryRecord(row));
+    }
+
+    return rows.map((row) => mapHistoryRecord(row, notesByRecordId.get(row.id as string)));
   }
 
   async function insertHistoryRow(record: HistoryRecord, includeNotes: boolean) {
@@ -220,11 +383,17 @@ export function createLaundryRepository(
   }
 
   async function addHistory(record: HistoryRecord) {
+    let usedInternalNoteFallback = false;
     const { error: historyError } = await insertHistoryRow(record, true);
     if (historyError) {
       if (!hasMissingHistoryNotesColumn(historyError)) throw historyError;
       const { error: fallbackError } = await insertHistoryRow(record, false);
       if (fallbackError) throw fallbackError;
+      usedInternalNoteFallback = true;
+    }
+
+    if (usedInternalNoteFallback) {
+      await syncInternalHistoryNote(record);
     }
 
     if (record.items.length === 0) return;
@@ -260,8 +429,10 @@ export function createLaundryRepository(
       updated_at: new Date().toISOString(),
     };
 
+    let usedInternalNoteFallback = false;
     let { error } = await supabase.from('history').update(payload).eq('id', record.id).eq('user_id', userId);
     if (error && hasMissingHistoryNotesColumn(error)) {
+      usedInternalNoteFallback = true;
       ({ error } = await supabase.from('history').update({
         date: record.date,
         type: record.type,
@@ -273,6 +444,10 @@ export function createLaundryRepository(
       }).eq('id', record.id).eq('user_id', userId));
     }
     if (error) throw error;
+
+    if (usedInternalNoteFallback) {
+      await syncInternalHistoryNote(record);
+    }
 
     const { error: deleteError } = await supabase.from('history_items').delete().eq('history_id', record.id);
     if (deleteError) throw deleteError;
@@ -301,15 +476,33 @@ export function createLaundryRepository(
     const userId = await getUserId();
     const { error } = await supabase.from('history').delete().eq('id', id).eq('user_id', userId);
     if (error) throw error;
+
+    const { error: noteDeleteError } = await supabase
+      .from('notes')
+      .delete()
+      .eq('user_id', userId)
+      .eq('related_record_id', id)
+      .like('content', `${INTERNAL_HISTORY_NOTE_PREFIX}%`);
+
+    if (noteDeleteError) throw noteDeleteError;
   }
 
-  async function clearHistory(startDate?: string, endDate?: string, typeFilter?: 'Ambos' | 'Serviços' | 'Enxoval') {
+  async function clearHistory(startDate?: string, endDate?: string, typeFilter?: string) {
     const records = await getHistory(startDate, endDate, typeFilter);
     const ids = records.map((record) => record.id);
     if (ids.length === 0) return;
     const userId = await getUserId();
     const { error } = await supabase.from('history').delete().eq('user_id', userId).in('id', ids);
     if (error) throw error;
+
+    const { error: noteDeleteError } = await supabase
+      .from('notes')
+      .delete()
+      .eq('user_id', userId)
+      .in('related_record_id', ids)
+      .like('content', `${INTERNAL_HISTORY_NOTE_PREFIX}%`);
+
+    if (noteDeleteError) throw noteDeleteError;
   }
 
   async function getUsers(): Promise<AppUserProfile[]> {
@@ -341,22 +534,77 @@ export function createLaundryRepository(
     }
     if (!data) return [];
 
-    return data.map((row: Record<string, unknown>) => ({
-      id: row.id as string,
-      content: row.content as string,
-      authorId: row.user_id as string,
-      authorRole: (row.author_role as string) || undefined,
-      visibility: (row.visibility as Note['visibility']) || 'private',
-      recipients: (row.recipients as string[]) || [],
-      readBy: (row.read_by as string[]) || [],
-      relatedRecordId: (row.related_record_id as string) || undefined,
-      createdAt: row.created_at as string,
-      updatedAt: row.updated_at as string,
-    }));
+    const mappedNotes = (data as Record<string, unknown>[])
+      .filter((row) => !isInternalHistoryNote((row.content as string | null) ?? null))
+      .map((row) => ({
+        id: row.id as string,
+        content: row.content as string,
+        authorId: row.user_id as string,
+        authorRole: (row.author_role as string) || undefined,
+        visibility: (row.visibility as Note['visibility']) || 'private',
+        recipients: (row.recipients as string[]) || [],
+        readBy: (row.read_by as string[]) || [],
+        relatedRecordId: (row.related_record_id as string) || undefined,
+        createdAt: row.created_at as string,
+        updatedAt: row.updated_at as string,
+      }));
+
+    const dedupedNotes = new Map<string, Note>();
+    for (const note of mappedNotes) {
+      if (!note.relatedRecordId) {
+        dedupedNotes.set(note.id, note);
+        continue;
+      }
+
+      const key = `${note.authorId}:${note.relatedRecordId}`;
+      const existing = dedupedNotes.get(key);
+      if (!existing || noteTimestamp(note) >= noteTimestamp(existing)) {
+        dedupedNotes.set(key, note);
+      }
+    }
+
+    return Array.from(dedupedNotes.values()).sort((left, right) =>
+      noteTimestamp(right) - noteTimestamp(left) || right.createdAt.localeCompare(left.createdAt),
+    );
   }
 
   async function addNote(note: Note) {
     const userId = await getUserId();
+    if (note.relatedRecordId) {
+      const { data: existingLinked, error: lookupError } = await supabase
+        .from('notes')
+        .select('id, content, created_at, updated_at')
+        .eq('user_id', userId)
+        .eq('related_record_id', note.relatedRecordId);
+
+      if (lookupError) throw lookupError;
+
+      const linkedBoardNote = ((existingLinked as Record<string, unknown>[] | null | undefined) ?? [])
+        .filter((row) => !isInternalHistoryNote((row.content as string | null) ?? null))
+        .sort((left, right) => {
+          const leftTime = Date.parse(String(left.updated_at ?? left.created_at ?? '')) || 0;
+          const rightTime = Date.parse(String(right.updated_at ?? right.created_at ?? '')) || 0;
+          return rightTime - leftTime;
+        })[0];
+
+      if (linkedBoardNote) {
+        const { error: updateError } = await supabase
+          .from('notes')
+          .update({
+            content: note.content,
+            author_role: note.authorRole,
+            visibility: note.visibility,
+            recipients: note.recipients ?? [],
+            read_by: note.readBy ?? [],
+            updated_at: note.updatedAt,
+          })
+          .eq('id', linkedBoardNote.id as string)
+          .eq('user_id', userId);
+        if (updateError) throw updateError;
+        return linkedBoardNote.id as string;
+      }
+    }
+
     const { error } = await supabase.from('notes').insert({
       id: note.id,
       user_id: userId,
@@ -370,6 +618,7 @@ export function createLaundryRepository(
       updated_at: note.updatedAt,
     });
     if (error) throw error;
+    return note.id;
   }
 
   async function updateNote(note: Note) {

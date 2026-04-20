@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { Modal } from '@/components/ui/Modal';
@@ -32,7 +32,7 @@ export function ItemsModal({ open, onClose, catalogType, onSaved }: Props) {
     // Determine catalog configuration based on ID
     const config = useMemo(() => {
         if (catalogType === 'services') {
-            return { type: 'service', key: 'c1_items', title: 'Serviços' };
+            return { type: 'service', key: 'c1_items', title: 'Servicos' };
         }
         if (catalogType === 'trousseau') {
             return { type: 'single', key: 'c2_items', title: 'Enxoval' };
@@ -43,7 +43,7 @@ export function ItemsModal({ open, onClose, catalogType, onSaved }: Props) {
             const type = custom.type === 'service' ? 'service' : 'single';
             return { type, key: `cat_${catalogType}_items`, title: custom.name };
         }
-        return { type: 'single', key: `cat_${catalogType}_items`, title: 'Catálogo' };
+        return { type: 'single', key: `cat_${catalogType}_items`, title: 'Catalogo' };
     }, [catalogType, settings.customCatalogs]);
 
     useEffect(() => {
@@ -92,7 +92,7 @@ export function ItemsModal({ open, onClose, catalogType, onSaved }: Props) {
 
     async function handleSave() {
         if (items.some(i => !i.name.trim())) {
-            toast('Nome obrigatório para todos os itens', 'error');
+            toast('Nome obrigatorio para todos os itens', 'error');
             return;
         }
 
@@ -112,7 +112,7 @@ export function ItemsModal({ open, onClose, catalogType, onSaved }: Props) {
 
     async function restoreDefaults() {
         if (config.key !== 'c1_items') {
-            toast('Apenas o catálogo de Serviços tem padrão', 'error');
+            toast('Apenas o catalogo de Servicos tem padrao', 'error');
             return;
         }
         await setConfig('c1_items', DEFAULT_C1_ITEMS);
@@ -122,7 +122,7 @@ export function ItemsModal({ open, onClose, catalogType, onSaved }: Props) {
             price: i.priceLP,
             priceP: i.priceP
         })));
-        toast('Serviços restaurados ao padrão', 'info');
+        toast('Servicos restaurados ao padrao', 'info');
     }
 
     function exportJSON() {
@@ -168,7 +168,7 @@ export function ItemsModal({ open, onClose, catalogType, onSaved }: Props) {
                 setItems(mapped);
                 toast('Dados importados! Clique em Salvar para confirmar.', 'info');
             } catch {
-                toast('Arquivo inválido', 'error');
+                toast('Arquivo invalido', 'error');
             }
         };
         input.click();
@@ -189,8 +189,8 @@ export function ItemsModal({ open, onClose, catalogType, onSaved }: Props) {
                     <div className="grid gap-2 text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider px-1"
                         style={{ gridTemplateColumns: isService ? '1fr 90px 90px 28px' : '1fr 100px 28px' }}>
                         <span>Nome do Item</span>
-                        <span className="text-center">{isService ? 'Preço LP' : 'Preço'}</span>
-                        {isService && <span className="text-center">Preço P</span>}
+                        <span className="text-center">{isService ? 'Preco LP' : 'Preco'}</span>
+                        {isService && <span className="text-center">Preco P</span>}
                         <span></span>
                     </div>
 
@@ -216,7 +216,7 @@ export function ItemsModal({ open, onClose, catalogType, onSaved }: Props) {
                                     className="input input-sm text-center"
                                     type="number"
                                     min="0" step="0.01"
-                                    placeholder="Vazio = sem"
+                                    placeholder=""
                                     value={item.priceP ?? ''}
                                     onChange={(e) => {
                                         const v = e.target.value;
@@ -229,14 +229,14 @@ export function ItemsModal({ open, onClose, catalogType, onSaved }: Props) {
                                 onClick={() => removeItem(idx)}
                                 title="Remover item"
                             >
-                                ✕
+                                x
                             </button>
                         </div>
                     ))}
 
                     {items.length === 0 && (
                         <div className="text-center py-8 text-[var(--text-muted)] italic border border-dashed border-[var(--glass-border)] rounded-xl">
-                            Nenhum item neste catálogo. Adicione um novo item abaixo.
+                            Nenhum item neste catalogo. Adicione um novo item abaixo.
                         </div>
                     )}
                 </div>
@@ -249,19 +249,20 @@ export function ItemsModal({ open, onClose, catalogType, onSaved }: Props) {
                 </button>
                 {config.key === 'c1_items' && (
                     <button className="btn btn-ghost btn-sm" onClick={restoreDefaults}>
-                        ↺ Restaurar padrão
+                        Restaurar padrao
                     </button>
                 )}
                 <button className="btn btn-ghost btn-sm" onClick={exportJSON}>
-                    ⬇ Exportar JSON
+                    Exportar JSON
                 </button>
                 <button className="btn btn-ghost btn-sm" onClick={importJSON}>
-                    ⬆ Importar JSON
+                    Importar JSON
                 </button>
                 <div className="flex-1" />
                 <button className="btn btn-secondary btn-sm" onClick={onClose}>Cancelar</button>
-                <button className="btn btn-primary btn-sm" onClick={handleSave}>Salvar alterações</button>
+                <button className="btn btn-primary btn-sm" onClick={handleSave}>Salvar alteracoes</button>
             </div>
         </Modal>
     );
 }
+

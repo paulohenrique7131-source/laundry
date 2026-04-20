@@ -34,35 +34,68 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [loading, setLoading] = useState(true);
     const roleCache = useRef<Record<string, string>>({});
 
+    const withTimeout = useCallback(async <T,>(promise: PromiseLike<T>, fallback: T, timeoutMs = 8000): Promise<T> => {
+        let timer: ReturnType<typeof setTimeout> | null = null;
+
+        try {
+            return await Promise.race([
+                promise,
+                new Promise<T>((resolve) => {
+                    timer = setTimeout(() => resolve(fallback), timeoutMs);
+                }),
+            ]);
+        } finally {
+            if (timer) clearTimeout(timer);
+        }
+    }, []);
+
     const fetchRole = useCallback(async (uid: string) => {
         // Cache: only fetch role once per user ID
         if (roleCache.current[uid]) {
             setRole(roleCache.current[uid]);
             return;
         }
-        const { data } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', uid)
-            .single();
-        const r = data?.role ?? null;
-        if (r) roleCache.current[uid] = r;
-        setRole(r);
-    }, []);
+        try {
+            const { data } = await withTimeout(
+                supabase
+                    .from('profiles')
+                    .select('role')
+                    .eq('id', uid)
+                    .single(),
+                ({ data: null } as any),
+            );
+            const r = data?.role ?? null;
+            if (r) roleCache.current[uid] = r;
+            setRole(r);
+        } catch {
+            setRole(null);
+        }
+    }, [withTimeout]);
 
     useEffect(() => {
         let mounted = true;
 
         const init = async () => {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!mounted) return;
-            const currentUser = session?.user ?? null;
-            setUser(currentUser);
-            setUserId(currentUser?.id ?? null);
-            if (currentUser) {
-                await fetchRole(currentUser.id);
+            try {
+                const { data: { session } } = await withTimeout(
+                    supabase.auth.getSession(),
+                    ({ data: { session: null }, error: null } as any),
+                );
+                if (!mounted) return;
+                const currentUser = session?.user ?? null;
+                setUser(currentUser);
+                setUserId(currentUser?.id ?? null);
+                if (currentUser) {
+                    await fetchRole(currentUser.id);
+                }
+            } catch {
+                if (!mounted) return;
+                setUser(null);
+                setUserId(null);
+                setRole(null);
+            } finally {
+                if (mounted) setLoading(false);
             }
-            if (mounted) setLoading(false);
         };
         init();
 
@@ -80,14 +113,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 setUser(currentUser);
                 setUserId(currentUser?.id ?? null);
 
-                if (event === 'SIGNED_IN' && currentUser) {
-                    await fetchRole(currentUser.id);
-                } else if (event === 'SIGNED_OUT') {
-                    setRole(null);
-                    roleCache.current = {};
+                try {
+                    if (event === 'SIGNED_IN' && currentUser) {
+                        await fetchRole(currentUser.id);
+                    } else if (event === 'SIGNED_OUT') {
+                        setRole(null);
+                        roleCache.current = {};
+                    }
+                } finally {
+                    if (mounted) setLoading(false);
                 }
-
-                if (mounted) setLoading(false);
             }
         );
 

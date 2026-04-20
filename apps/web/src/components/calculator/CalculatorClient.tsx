@@ -422,7 +422,7 @@ export default function CalculatorClient() {
         const timeStr = now.toLocaleTimeString('pt-BR');
 
         const html = `<!DOCTYPE html>
-<html lang="pt-BR"><head><meta charset="UTF-8"><title>Comanda - Lavanderia</title>
+<html lang="pt-BR"><head><meta charset="UTF-8"><title>Comanda - Washly</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 40px; background: #fff; color: #1a1a2e; }
@@ -441,7 +441,7 @@ tr:nth-child(even) td { background: #fafafa; }
 .print-btn { display: block; margin: 30px auto 0; padding: 12px 40px; background: #f59e0b; color: #000; border: none; border-radius: 10px; font-size: 16px; font-weight: 700; cursor: pointer; }
 @media print { .print-btn { display: none; } }
 </style></head><body>
-<div class="header"><h1>🧺 Lavanderia</h1><p>Comanda de ${catalogTitle}</p></div>
+<div class="header"><h1>Washly</h1><p>Comanda de ${catalogTitle}</p></div>
 <div class="meta">
 <span>📅 ${dateStr} — ${timeStr}</span>
 <span>🏷️ ${isServiceMode ? `Tipo: ${serviceType}` : catalogTitle}</span>
@@ -475,7 +475,7 @@ ${additionalAmount > 0 ? `<div class="row"><span>Adicional ${serviceType} (${((m
             <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold">Calculadora</h1>
-                    <p className="text-sm text-[var(--text-muted)] mt-1">Calcule o valor dos serviços de lavanderia</p>
+                <p className="text-sm text-[var(--text-muted)] mt-1">Calcule o valor dos serviços da Washly</p>
                 </div>
             </div>
 

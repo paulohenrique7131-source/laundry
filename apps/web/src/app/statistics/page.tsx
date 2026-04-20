@@ -1,7 +1,7 @@
 'use client';
 
-import StatisticsClient from '@/components/statistics/StatisticsClient';
+import { StatisticsV2 } from '@/components/statistics/StatisticsV2';
 
 export default function StatisticsPage() {
-    return <StatisticsClient />;
+    return <StatisticsV2 />;
 }
